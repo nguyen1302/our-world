@@ -23,6 +23,8 @@ export interface AppConfig {
   s3: S3Config;
   clusterDistanceKm: number;
   clusterTimeGapHours: number;
+  tripDistanceKm: number;
+  tripGapHours: number;
   nominatimUserAgent: string;
   nominatimBaseUrl: string;
 }
@@ -83,6 +85,8 @@ export function getConfig(env: NodeJS.ProcessEnv = process.env): AppConfig {
     },
     clusterDistanceKm: num("CLUSTER_DISTANCE_KM", env.CLUSTER_DISTANCE_KM, 1.5),
     clusterTimeGapHours: num("CLUSTER_TIME_GAP_HOURS", env.CLUSTER_TIME_GAP_HOURS, 6),
+    tripDistanceKm: num("TRIP_DISTANCE_KM", env.TRIP_DISTANCE_KM, 80),
+    tripGapHours: num("TRIP_GAP_HOURS", env.TRIP_GAP_HOURS, 36),
     nominatimUserAgent: env.NOMINATIM_USER_AGENT || "our-world/0.1",
     nominatimBaseUrl: env.NOMINATIM_BASE_URL || "https://nominatim.openstreetmap.org",
   };

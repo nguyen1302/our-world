@@ -3,7 +3,7 @@ import { and, eq, isNull, sql } from "drizzle-orm";
 import { requireRole } from "@/lib/session";
 import { getConfig } from "@/lib/config";
 import { db } from "@/db";
-import { memories, photos } from "@/db/schema";
+import { trips, photos } from "@/db/schema";
 
 export const runtime = "nodejs";
 
@@ -16,11 +16,11 @@ export async function GET() {
   const memAgg = await db
     .select({
       memories: sql<number>`count(*)::int`,
-      provinces: sql<number>`count(distinct ${memories.provinceCode})::int`,
-      countries: sql<number>`count(distinct ${memories.country})::int`,
+      provinces: sql<number>`count(distinct ${trips.provinceCode})::int`,
+      countries: sql<number>`count(distinct ${trips.country})::int`,
     })
-    .from(memories)
-    .where(and(eq(memories.spaceId, spaceId), isNull(memories.deletedAt)));
+    .from(trips)
+    .where(and(eq(trips.spaceId, spaceId), isNull(trips.deletedAt)));
 
   const photoAgg = await db
     .select({

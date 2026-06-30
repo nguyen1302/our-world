@@ -142,7 +142,9 @@ export default function TimelineBar() {
                   <div className="ow-tlbead__thumb">
                     <img src={m.coverThumbUrl ?? ""} alt="" loading="lazy" />
                   </div>
-                  <div className="ow-tlbead__label">Th{Number(m.startAt.slice(5, 7))}</div>
+                  <div className="ow-tlbead__label">
+                    {Number(m.startAt.slice(8, 10))}/{Number(m.startAt.slice(5, 7))}
+                  </div>
                 </div>
               );
             })}

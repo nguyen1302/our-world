@@ -15,6 +15,13 @@
       "when": 1782837185327,
       "tag": "0001_mysterious_eternals",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1782843542310,
+      "tag": "0002_colorful_salo",
+      "breakpoints": true
     }
   ]
 }

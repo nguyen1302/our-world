@@ -1,8 +1,8 @@
-import { and, eq, isNull } from "drizzle-orm";
+import { and, eq, isNull, sql } from "drizzle-orm";
 import { db } from "@/db";
-import { memories, photos } from "@/db/schema";
+import { memories, photos, trips } from "@/db/schema";
 import { getConfig } from "./config";
-import { buildTitle } from "./title";
+import { buildTitle, formatDateRange } from "./title";
 import type { GeoResult } from "./geocode";
 
 export interface ClusterConfig {
@@ -88,6 +88,7 @@ export async function assignPhotoToMemory(
 
   const matchId = pickMemory(existing as MemoryBounds[], photo, clusterCfg);
 
+  let memoryId: string;
   if (matchId) {
     const m = (existing as MemoryBounds[]).find((x) => x.id === matchId)!;
     const newStart = photo.takenAt < m.startAt ? photo.takenAt : m.startAt;
@@ -97,34 +98,119 @@ export async function assignPhotoToMemory(
       .set({ startAt: newStart, endAt: newEnd, updatedAt: new Date() })
       .where(eq(memories.id, matchId));
     await db.update(photos).set({ memoryId: matchId }).where(eq(photos.id, photo.id));
-    return matchId;
-  }
-
-  const title = buildTitle({
-    placeName: geo.placeName,
-    city: geo.city,
-    startAt: photo.takenAt,
-    endAt: photo.takenAt,
-  });
-
-  const inserted = await db
-    .insert(memories)
-    .values({
-      spaceId: photo.spaceId,
-      title,
-      country: geo.country,
-      city: geo.city,
+    memoryId = matchId;
+  } else {
+    const title = buildTitle({
       placeName: geo.placeName,
-      provinceCode: geo.provinceCode,
-      lat: photo.lat,
-      lng: photo.lng,
+      city: geo.city,
       startAt: photo.takenAt,
       endAt: photo.takenAt,
-      coverPhotoId: photo.id,
-    })
-    .returning({ id: memories.id });
+    });
+    const inserted = await db
+      .insert(memories)
+      .values({
+        spaceId: photo.spaceId,
+        title,
+        country: geo.country,
+        city: geo.city,
+        placeName: geo.placeName,
+        provinceCode: geo.provinceCode,
+        lat: photo.lat,
+        lng: photo.lng,
+        startAt: photo.takenAt,
+        endAt: photo.takenAt,
+        coverPhotoId: photo.id,
+      })
+      .returning({ id: memories.id });
+    memoryId = inserted[0].id;
+    await db.update(photos).set({ memoryId }).where(eq(photos.id, photo.id));
+  }
 
-  const memoryId = inserted[0].id;
-  await db.update(photos).set({ memoryId }).where(eq(photos.id, photo.id));
+  await assignMemoryToTrip(memoryId, photo.spaceId, photo, geo);
   return memoryId;
+}
+
+/** Group a place-memory into a Trip (e.g. a multi-day, multi-place trip). */
+export async function assignMemoryToTrip(
+  memoryId: string,
+  spaceId: string,
+  point: PhotoPoint,
+  geo: GeoResult,
+): Promise<string> {
+  const cfg = getConfig();
+  const tripCfg: ClusterConfig = { distanceKm: cfg.tripDistanceKm, gapHours: cfg.tripGapHours };
+
+  const existing = await db
+    .select({ id: trips.id, lat: trips.lat, lng: trips.lng, startAt: trips.startAt, endAt: trips.endAt })
+    .from(trips)
+    .where(and(eq(trips.spaceId, spaceId), isNull(trips.deletedAt)));
+
+  let tripId = pickMemory(existing as MemoryBounds[], point, tripCfg);
+
+  if (!tripId) {
+    const inserted = await db
+      .insert(trips)
+      .values({
+        spaceId,
+        title: `${geo.city || geo.placeName || "Chuyến đi"}`,
+        country: geo.country,
+        city: geo.city,
+        provinceCode: geo.provinceCode,
+        lat: point.lat,
+        lng: point.lng,
+        startAt: point.takenAt,
+        endAt: point.takenAt,
+      })
+      .returning({ id: trips.id });
+    tripId = inserted[0].id;
+  }
+
+  await db.update(memories).set({ tripId }).where(eq(memories.id, memoryId));
+  await recomputeTrip(tripId);
+  return tripId;
+}
+
+/** Recompute a trip's bounds/centroid/cover/title from its member memories. */
+export async function recomputeTrip(tripId: string): Promise<void> {
+  const members = await db
+    .select({
+      lat: memories.lat,
+      lng: memories.lng,
+      startAt: memories.startAt,
+      endAt: memories.endAt,
+      city: memories.city,
+      provinceCode: memories.provinceCode,
+      country: memories.country,
+      coverPhotoId: memories.coverPhotoId,
+    })
+    .from(memories)
+    .where(and(eq(memories.tripId, tripId), isNull(memories.deletedAt)));
+
+  if (members.length === 0) return;
+
+  const lat = members.reduce((s, m) => s + m.lat, 0) / members.length;
+  const lng = members.reduce((s, m) => s + m.lng, 0) / members.length;
+  const start = members.reduce((a, m) => (m.startAt < a ? m.startAt : a), members[0].startAt);
+  const end = members.reduce((a, m) => (m.endAt > a ? m.endAt : a), members[0].endAt);
+  const earliest = [...members].sort((a, b) => a.startAt.getTime() - b.startAt.getTime())[0];
+  const city = members.find((m) => m.city)?.city ?? null;
+  const province = members.find((m) => m.provinceCode)?.provinceCode ?? null;
+  const country = members.find((m) => m.country)?.country ?? null;
+  const title = `${city || "Chuyến đi"} · ${formatDateRange(start, end)}`;
+
+  await db
+    .update(trips)
+    .set({
+      lat,
+      lng,
+      startAt: start,
+      endAt: end,
+      city,
+      provinceCode: province,
+      country,
+      coverPhotoId: earliest.coverPhotoId,
+      title,
+      updatedAt: new Date(),
+    })
+    .where(eq(trips.id, tripId));
 }

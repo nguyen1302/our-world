@@ -34,6 +34,7 @@ export const memories = pgTable(
   {
     id: uuid("id").primaryKey().defaultRandom(),
     spaceId: uuid("space_id").notNull(),
+    tripId: uuid("trip_id"),
     title: text("title").notNull(),
     description: text("description"),
     country: text("country"),
@@ -51,8 +52,36 @@ export const memories = pgTable(
   },
   (t) => ({
     spaceIdx: index("memories_space_idx").on(t.spaceId),
+    tripIdx: index("memories_trip_idx").on(t.tripId),
     startIdx: index("memories_start_idx").on(t.startAt),
     provinceIdx: index("memories_province_idx").on(t.provinceCode),
+  }),
+);
+
+// A Trip groups nearby-in-time Memories (place visits) into one journey stop,
+// e.g. a 3-day Nha Trang trip that visited many places = one Trip.
+export const trips = pgTable(
+  "trips",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    spaceId: uuid("space_id").notNull(),
+    title: text("title").notNull(),
+    description: text("description"),
+    country: text("country"),
+    city: text("city"),
+    provinceCode: text("province_code"),
+    lat: doublePrecision("lat").notNull(),
+    lng: doublePrecision("lng").notNull(),
+    startAt: timestamp("start_at", { withTimezone: true }).notNull(),
+    endAt: timestamp("end_at", { withTimezone: true }).notNull(),
+    coverPhotoId: uuid("cover_photo_id"),
+    deletedAt: timestamp("deleted_at", { withTimezone: true }),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => ({
+    spaceIdx: index("trips_space_idx").on(t.spaceId),
+    startIdx: index("trips_start_idx").on(t.startAt),
   }),
 );
 
