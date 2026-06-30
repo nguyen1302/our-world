@@ -40,7 +40,10 @@ export default function TimelineBar() {
               onClick={() => preview(m.id)}
               title={m.title}
             >
-              <span className="ow-tlnode__dot" />
+              <span
+                className={`ow-tlnode__thumb ${m.coverThumbUrl ? "" : "ow-tlnode__thumb--empty"}`}
+                style={m.coverThumbUrl ? { backgroundImage: `url('${m.coverThumbUrl}')` } : undefined}
+              />
               <span className="ow-tlnode__labels">
                 <span className="ow-tlnode__date">
                   {day}/{MONTHS[month]}

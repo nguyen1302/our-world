@@ -114,26 +114,26 @@ html, body {
 /* each node fills the bar height; the dot is centered ON the line, labels hang below */
 .ow-tlnode {
   position: relative; z-index: 1; background: none; border: none; cursor: pointer;
-  height: 100%; min-width: 74px; max-width: 116px; padding: 0 6px;
+  height: 100%; min-width: 92px; max-width: 120px; padding: 0 8px;
 }
-.ow-tlnode__dot {
+.ow-tlnode__thumb {
   position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
-  width: 20px; height: 20px; border-radius: 50%; background: #fff;
-  border: 2px solid var(--amber); box-shadow: 0 2px 6px rgba(245,158,11,.35);
-  display: flex; align-items: center; justify-content: center; transition: transform .15s;
+  width: 32px; height: 32px; border-radius: 50%; border: 2px solid #fff;
+  background-size: cover; background-position: center; background-color: var(--amber-soft);
+  box-shadow: 0 2px 8px rgba(15,23,42,.3); transition: transform .15s;
 }
-.ow-tlnode__dot::after { content: ""; width: 7px; height: 7px; border-radius: 50%; background: var(--amber); }
+.ow-tlnode__thumb--empty { background-image: linear-gradient(135deg, var(--amber-soft), var(--amber)); }
 .ow-tlnode__labels {
-  position: absolute; top: calc(50% + 16px); left: 50%; transform: translateX(-50%);
+  position: absolute; top: calc(50% + 22px); left: 50%; transform: translateX(-50%);
   display: flex; flex-direction: column; align-items: center; gap: 1px; width: 100%;
 }
-.ow-tlnode__date { font-size: 11px; color: var(--muted); }
+.ow-tlnode__date { font-size: 11px; color: var(--muted); font-weight: 600; }
 .ow-tlnode__title {
-  font-size: 11px; color: var(--ink); max-width: 108px; overflow: hidden;
+  font-size: 11px; color: var(--ink); max-width: 110px; overflow: hidden;
   text-overflow: ellipsis; white-space: nowrap;
 }
-.ow-tlnode--active .ow-tlnode__dot { border-color: var(--blue); transform: translate(-50%, -50%) scale(1.35); box-shadow: 0 3px 10px rgba(37,99,235,.4); }
-.ow-tlnode--active .ow-tlnode__dot::after { background: var(--blue); }
+.ow-tlnode--active .ow-tlnode__thumb { border-color: var(--blue); transform: translate(-50%, -50%) scale(1.28); box-shadow: 0 4px 12px rgba(45,108,223,.5); }
+.ow-tlnode--active .ow-tlnode__date,
 .ow-tlnode--active .ow-tlnode__title { color: var(--blue); font-weight: 700; }
 
 /* ---------- Thumbnail markers ---------- */
@@ -194,4 +194,9 @@ html, body {
   .ow-stat__l { display: none; }      /* icon + số là đủ hiểu trên mobile */
   .ow-card { width: auto; left: 10px; right: 10px; max-width: none; }
   .ow-onthisday { font-size: 12px; padding: 7px 10px; }
+
+  /* timeline: bỏ tiêu đề dài + nới rộng khoảng cách để chữ ngày không bị đè */
+  .ow-tlnode { min-width: 72px; max-width: 80px; padding: 0 10px; }
+  .ow-tlnode__title { display: none; }
+  .ow-tlnode__labels { top: calc(50% + 20px); }
 }
