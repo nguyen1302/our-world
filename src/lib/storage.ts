@@ -14,6 +14,14 @@ const EXT_BY_MIME: Record<string, string> = {
   "image/heic": "heic",
   "image/heif": "heif",
   "image/gif": "gif",
+  "audio/mpeg": "mp3",
+  "audio/mp3": "mp3",
+  "audio/mp4": "m4a",
+  "audio/x-m4a": "m4a",
+  "audio/aac": "aac",
+  "audio/ogg": "ogg",
+  "audio/wav": "wav",
+  "audio/webm": "weba",
 };
 
 export function extForContentType(contentType: string): string {
@@ -26,6 +34,10 @@ export function originalKey(spaceId: string, id: string, contentType: string): s
 
 export function thumbKey(spaceId: string, id: string): string {
   return `thumbs/${spaceId}/${id}.webp`;
+}
+
+export function audioKey(spaceId: string, id: string, contentType: string): string {
+  return `audio/${spaceId}/${id}.${extForContentType(contentType)}`;
 }
 
 export interface StorageProvider {

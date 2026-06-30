@@ -11,6 +11,8 @@ import TopMenu from "@/components/TopMenu";
 import MemoryCard from "@/components/MemoryCard";
 import JourneyControls from "@/components/JourneyControls";
 import FaceModal from "@/components/FaceModal";
+import MusicModal from "@/components/MusicModal";
+import { setMusicTrack } from "@/components/journeyMusic";
 
 const WorldMap = dynamic(() => import("@/components/WorldMap"), { ssr: false });
 
@@ -27,6 +29,7 @@ export default function Home() {
   const [geo, setGeo] = useState<unknown>(null);
   const [role, setRole] = useState<"admin" | "viewer" | null>(null);
   const [showFaces, setShowFaces] = useState(false);
+  const [showMusic, setShowMusic] = useState(false);
 
   const refresh = useCallback(async () => {
     const [m, sc, st] = await Promise.all([
@@ -42,6 +45,7 @@ export default function Home() {
   useEffect(() => {
     fetch("/api/me").then((r) => (r.ok ? r.json() : null)).then((d) => setRole(d?.role ?? null));
     fetch("/vn-provinces.geojson").then((r) => r.json()).then(setGeo).catch(() => setGeo(null));
+    fetch("/api/music").then((r) => (r.ok ? r.json() : null)).then((d) => setMusicTrack(d?.activeUrl ?? null));
     refresh();
   }, [refresh]);
 
@@ -67,7 +71,13 @@ export default function Home() {
             ▶
           </button>
         )}
-        <TopMenu isAdmin={isAdmin} onUploaded={refresh} onLogout={logout} onFaces={() => setShowFaces(true)} />
+        <TopMenu
+          isAdmin={isAdmin}
+          onUploaded={refresh}
+          onLogout={logout}
+          onFaces={() => setShowFaces(true)}
+          onMusic={() => setShowMusic(true)}
+        />
       </header>
 
       <OnThisDay />
@@ -78,6 +88,7 @@ export default function Home() {
       <JourneyControls />
 
       {showFaces && <FaceModal onClose={() => setShowFaces(false)} />}
+      {showMusic && <MusicModal onClose={() => setShowMusic(false)} />}
     </div>
   );
 }

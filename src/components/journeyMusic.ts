@@ -11,6 +11,13 @@ type Audio = {
 
 let audio: Audio | null = null;
 let muted = false;
+let trackUrl: string | null = null;
+let trackEl: HTMLAudioElement | null = null;
+
+/** Set the uploaded song to use (null -> fall back to the generated tune). */
+export function setMusicTrack(url: string | null) {
+  trackUrl = url;
+}
 
 // C – G – Am – F, four notes per bar (a warm, nostalgic loop).
 const PROG: number[][] = [
@@ -54,6 +61,20 @@ function tick() {
 }
 
 export function startMusic() {
+  // Prefer the user's uploaded song; fall back to the generated tune.
+  if (trackUrl) {
+    try {
+      if (!trackEl) trackEl = new Audio();
+      if (trackEl.src !== trackUrl) trackEl.src = trackUrl;
+      trackEl.loop = true;
+      trackEl.volume = 0.7;
+      trackEl.muted = muted;
+      trackEl.play().catch(() => {});
+      return;
+    } catch {
+      /* fall through to generated tune */
+    }
+  }
   try {
     if (!audio) {
       const ctx = new (window.AudioContext || (window as any).webkitAudioContext)();
@@ -83,6 +104,11 @@ export function startMusic() {
 }
 
 export function stopMusic() {
+  if (trackEl) {
+    try {
+      trackEl.pause();
+    } catch {}
+  }
   if (!audio) return;
   if (audio.timer) clearInterval(audio.timer);
   audio.timer = null;
@@ -93,6 +119,7 @@ export function stopMusic() {
 
 export function setMusicMuted(m: boolean) {
   muted = m;
+  if (trackEl) trackEl.muted = m;
   if (audio) {
     try {
       audio.master.gain.value = m ? 0 : 0.22;

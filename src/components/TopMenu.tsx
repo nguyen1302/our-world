@@ -8,11 +8,13 @@ export default function TopMenu({
   onUploaded,
   onLogout,
   onFaces,
+  onMusic,
 }: {
   isAdmin: boolean;
   onUploaded: () => void;
   onLogout: () => void;
   onFaces: () => void;
+  onMusic: () => void;
 }) {
   const [open, setOpen] = useState(false);
   const showRoute = useMapStore((s) => s.showRoute);
@@ -48,6 +50,17 @@ export default function TopMenu({
           >
             💕 Ghép mặt vào phương tiện
           </button>
+          {isAdmin && (
+            <button
+              className="ow-menu__item"
+              onClick={() => {
+                setOpen(false);
+                onMusic();
+              }}
+            >
+              🎵 Nhạc nền
+            </button>
+          )}
           <button
             className="ow-menu__item ow-menu__item--logout"
             onClick={() => {

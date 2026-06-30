@@ -6,6 +6,7 @@ import {
   timestamp,
   integer,
   jsonb,
+  boolean,
   index,
 } from "drizzle-orm/pg-core";
 
@@ -110,6 +111,19 @@ export const geocodeCache = pgTable(
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   },
   (t) => ({ cellIdx: index("geocode_cell_idx").on(t.latKey, t.lngKey) }),
+);
+
+export const tracks = pgTable(
+  "tracks",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    spaceId: uuid("space_id").notNull(),
+    name: text("name").notNull(),
+    s3Key: text("s3_key").notNull(),
+    isActive: boolean("is_active").notNull().default(false),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => ({ spaceIdx: index("tracks_space_idx").on(t.spaceId) }),
 );
 
 export type Memory = typeof memories.$inferSelect;
