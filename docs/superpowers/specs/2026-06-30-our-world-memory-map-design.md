@@ -198,3 +198,27 @@ Thiết kế đã chừa sẵn:
 - **Ảnh thiếu GPS/EXIF** (vd ảnh chụp màn hình, ảnh tải về) → gắn `needs_review`, không lên map.
 - **Nominatim rate limit** → cache + fallback offline.
 - **iPhone Safari** quyết định luồng upload (input file nhận nhiều ảnh) → cần test thực tế trên Safari.
+
+## 14. Journey replay — phương tiện di chuyển (bổ sung sau v1)
+
+Tính năng "xem lại hành trình": nút **▶ Play** cho một phương tiện chạy lần lượt qua các Memory **theo thứ tự thời gian**, đồng bộ trên **cả bản đồ lẫn timeline**.
+
+- **Chọn phương tiện theo khoảng cách từng chặng** (haversine giữa 2 mốc liên tiếp): `< 25km` → 🛵 xe máy, `< 250km` → 🚗 ô tô, còn lại → ✈️ máy bay. Vẽ bằng SVG (`src/components/vehicles.ts`), có **2 ô khuôn mặt** để ghép ảnh.
+- **Chuyển động từng chặng** (chống lag): **zoom-out** đóng khung 2 mốc (mức zoom theo khoảng cách) → phương tiện **trượt thẳng A→B trên bản đồ đứng yên** (≈2.6s+, xa hơn thì lâu hơn) → **zoom-in** vào mốc đích. Xe trên timeline glide giữa 2 bead theo cùng `progress 0→1`.
+- **Dừng ở mỗi mốc**: mở Memory Card (ảnh + 📅 ngày + 📍 địa điểm + mô tả), phát nhạc; người dùng bấm **Tiếp →** hoặc **✕ Thoát**.
+- **FX**: khói (xe máy/ô tô) / mây (máy bay) phát ra phía sau khi đang chạy (phần art do design brief đảm nhiệm). Hướng xe quay phải mặc định, lật ngang khi đi sang trái.
+- **Hiệu năng**: bản đồ dùng canvas renderer (`preferCanvas`) cho 63 polygon tỉnh, tile `keepBuffer`/`updateWhenZooming=false`, zoom nông + bay easeLinearity → mượt, không giật khi zoom.
+- State điều phối: `journeyStore` (`playing/phase/index/progress/total/faces`); camera + xe bản đồ trong `JourneyController`; điều khiển ở `JourneyControls`.
+
+## 15. Nhạc nền (bổ sung)
+
+- Khi replay phát **nhạc nền**. Admin **tự upload bài hát** (mp3/m4a) qua menu 🎵 → lưu S3 (bảng `tracks`, có cờ `is_active`) → phát bài đang chọn (lặp). Chưa có bài → dùng **giai điệu tự sinh bằng WebAudio** (không file, không bản quyền). Nút 🎵/🔇 tắt/mở.
+- **Không nhúng nhạc có bản quyền** — chỉ dùng nhạc người dùng tự thêm (hợp pháp).
+
+## 16. Ghép mặt vào phương tiện (bổ sung)
+
+- Menu 💕 mở modal cho người dùng **cắt khuôn mặt tròn** của 2 người (kéo + zoom trên canvas), lưu **localStorage** (data URL). Mặt được composite vào ô khuôn mặt của phương tiện khi replay; chưa cắt thì dùng mặt cartoon mặc định.
+
+## 17. Đổi tên
+
+Sản phẩm đổi tên hiển thị thành **"We Were Here ♥"** (brand, login, tiêu đề). Tên thư mục/spec giữ `our-world` để không phá đường dẫn git.

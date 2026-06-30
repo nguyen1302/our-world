@@ -60,6 +60,25 @@ The journey vehicle changes by segment distance: **motorbike (<25km), car (<250k
 - Deliver as clean SVG (viewBox ~`0 0 72 46`, but you may resize — just tell us the anchor/size). Style should match the palette and the cute tone.
 - Bonus: a tiny idle bob/wheel-spin suggestion.
 
+## 6b. Journey movement (the motion the artwork lives in)
+This is how the vehicle actually moves — design the FX/timing to fit it.
+
+**Replay flow.** User taps ▶ Play. The journey visits memories in chronological order, stop by stop. At each stop it **pauses** (map zoomed into that memory, detail card open, music playing); user taps **Tiếp →** to go to the next stop, or **✕ Thoát** to quit. So motion happens only during the "moving" phase between two stops.
+
+**Per-segment motion (current implementation — restyle the feel, keep the shape):**
+1. **Zoom out** to frame both the current and next stop (`flyToBounds`, gentle easing). The farther apart, the more it zooms out. This was added to fix lag — do NOT design a continuous pan that follows the vehicle while zoomed in.
+2. **Travel:** while the map sits still (framed), the vehicle slides along a straight line from stop A to stop B (~2.6s + longer for far segments). The same motion mirrors on the **timeline axis**: a matching vehicle glides from bead A to bead B in sync (progress 0→1).
+3. **Zoom in** to the arrival stop and pause.
+
+**What the designer controls / should specify:**
+- The **vehicle facing**: artwork faces right; we mirror horizontally for leftward travel. Make sure faces/details still read when mirrored (or give a mirror-safe design).
+- **FX during travel only**: smoke puffs (bike/car) / clouds (plane) emit from the rear and drift back + up + fade. Give keyframes (duration, easing, opacity, spawn cadence). FX should stop when paused.
+- **Speed feel**: suggest easing for the travel tween (e.g., ease-in-out vs linear) and whether the vehicle should bob/tilt slightly.
+- **Map ↔ timeline sync**: both vehicles share one 0→1 progress; design both so they feel like the same trip.
+- **Transitions** for the camera zoom-out/in (we use ~1.4–1.6s) — advise if a different pacing feels better, but keep it lag-safe (shallower zoom = fewer satellite tiles = smoother).
+
+Hooks: map vehicle is a Leaflet divIcon built in `src/components/WorldMap.tsx` (`JourneyController`); timeline vehicle is `.ow-tlvehicle` in `TimelineBar.tsx`; controls are `.ow-journey*`.
+
 ## 7. Deliverables
 1. A **design system** doc: tokens (hex/px), typography, spacing, radii, shadows, motion.
 2. **Per-component redlines** (reference the class names in §3) — enough for the engineer to translate to CSS.
