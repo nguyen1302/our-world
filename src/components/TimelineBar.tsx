@@ -40,11 +40,13 @@ export default function TimelineBar() {
               onClick={() => preview(m.id)}
               title={m.title}
             >
-              <span className="ow-tlnode__dot">♥</span>
-              <span className="ow-tlnode__date">
-                {day}/{MONTHS[month]}
+              <span className="ow-tlnode__dot" />
+              <span className="ow-tlnode__labels">
+                <span className="ow-tlnode__date">
+                  {day}/{MONTHS[month]}
+                </span>
+                <span className="ow-tlnode__title">{m.title.split(" · ")[0]}</span>
               </span>
-              <span className="ow-tlnode__title">{m.title.split(" · ")[0]}</span>
             </button>
           </div>
         ))}

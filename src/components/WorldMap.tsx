@@ -96,10 +96,10 @@ function ScratchOverlay() {
       style={(feature) => {
         const visited = feature && set.has(feature.properties.code);
         return {
-          color: visited ? "#2563eb" : "#cbd5e1",
-          weight: visited ? 1.1 : 0.5,
-          fillColor: visited ? "#3b82f6" : "#94a3b8",
-          fillOpacity: visited ? 0.22 : 0.03,
+          color: visited ? "#f3b14e" : "#ffffff",
+          weight: visited ? 1.4 : 0.4,
+          fillColor: "#f3b14e",
+          fillOpacity: visited ? 0.28 : 0,
         };
       }}
     />
@@ -119,13 +119,20 @@ export default function WorldMap({ geo }: { geo: unknown }) {
 
   return (
     <MapContainer center={VN_CENTER} zoom={VN_ZOOM} className="ow-map" scrollWheelZoom>
+      {/* Satellite imagery (like the iPhone Find map) + a place-label overlay */}
       <TileLayer
-        attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> &copy; <a href="https://carto.com/attributions">CARTO</a>'
-        url="https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png"
+        attribution='Tiles &copy; Esri — Source: Esri, Maxar, Earthstar Geographics'
+        url="https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}"
+        maxZoom={19}
+      />
+      <TileLayer
+        attribution='&copy; <a href="https://carto.com/attributions">CARTO</a>'
+        url="https://{s}.basemaps.cartocdn.com/rastertiles/voyager_only_labels/{z}/{x}/{y}{r}.png"
+        pane="overlayPane"
       />
       {geo ? <ScratchOverlay /> : null}
       {showRoute && routePoints.length > 1 ? (
-        <Polyline positions={routePoints} pathOptions={{ color: "#2563eb", weight: 2.5, opacity: 0.7, dashArray: "2 8", lineCap: "round" }} />
+        <Polyline positions={routePoints} pathOptions={{ color: "#ffd98a", weight: 3, opacity: 0.9, dashArray: "2 9", lineCap: "round" }} />
       ) : null}
       <ClusterLayer memories={memories} />
       <PreviewController />
