@@ -1,5 +1,5 @@
 # Single image used for both `web` and `worker` (different commands in compose).
-FROM node:20-slim AS build
+FROM node:22-slim AS build
 WORKDIR /app
 
 # System deps for sharp are bundled as prebuilt binaries; no extra apt needed.

@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { and, asc, eq, isNull, sql } from "drizzle-orm";
+import { and, asc, eq, inArray, isNull, sql } from "drizzle-orm";
 import { requireRole } from "@/lib/session";
 import { getConfig } from "@/lib/config";
 import { db } from "@/db";
@@ -44,7 +44,7 @@ export async function GET() {
     const covers = await db
       .select({ id: photos.id, thumb: photos.s3KeyThumb })
       .from(photos)
-      .where(sql`${photos.id} = ANY(${coverIds})`);
+      .where(inArray(photos.id, coverIds));
     for (const c of covers) coverKeyMap.set(c.id, c.thumb);
   }
 

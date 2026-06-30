@@ -11,3 +11,5 @@ coverage
 caddy_data
 caddy_config
 pgdata
+
+miniodata
