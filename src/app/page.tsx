@@ -59,7 +59,7 @@ export default function Home() {
 
       <header className="ow-topbar">
         <div className="ow-brand">
-          Our World <span>♥</span>
+          We Were Here <span>♥</span>
         </div>
         <Stats />
         {canPlay && !playing && (

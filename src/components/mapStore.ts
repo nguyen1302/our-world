@@ -69,13 +69,13 @@ export const useMapStore = create<MapState>((set, get) => ({
     set({ previewId: id });
     if (id) {
       const m = get().memories.find((x) => x.id === id);
-      if (m) set({ focus: { lat: m.lat, lng: m.lng, zoom: 12, nonce: Date.now() } });
+      if (m) set({ focus: { lat: m.lat, lng: m.lng, zoom: 11, nonce: Date.now() } });
     }
   },
   open: (id) => {
     const m = get().memories.find((x) => x.id === id);
     set({ selectedId: id, previewId: id });
-    if (m) set({ focus: { lat: m.lat, lng: m.lng, zoom: 13, nonce: Date.now() } });
+    if (m) set({ focus: { lat: m.lat, lng: m.lng, zoom: 12, nonce: Date.now() } });
   },
   closeDetail: () => set({ selectedId: null }),
   /** Show the detail card without moving the camera (journey controls the map). */

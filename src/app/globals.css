@@ -164,7 +164,9 @@ html, body {
 .ow-card__close { position: absolute; top: 12px; right: 14px; border: none; background: #f1f5f9; width: 30px; height: 30px; border-radius: 50%; font-size: 15px; cursor: pointer; color: var(--muted); }
 .ow-card__title { color: var(--blue); margin: 6px 40px 4px 0; font-size: 20px; }
 .ow-card__title-input { width: 100%; font-size: 18px; font-weight: 700; color: var(--ink); border: 1px solid var(--line); border-radius: 10px; padding: 8px; }
-.ow-card__meta { color: var(--muted); font-size: 13px; }
+.ow-card__meta { display: flex; flex-direction: column; gap: 6px; margin: 6px 0 4px; }
+.ow-card__date { align-self: flex-start; background: var(--honey); color: #b9802b; font-weight: 700; font-size: 12px; padding: 4px 10px; border-radius: 999px; }
+.ow-card__place { color: var(--muted); font-size: 13px; }
 .ow-gallery { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; margin: 12px 0; }
 .ow-gallery img { width: 100%; aspect-ratio: 1; object-fit: cover; border-radius: 10px; cursor: pointer; background: var(--sky); }
 .ow-card__desc-input { width: 100%; min-height: 84px; border: 1px solid var(--line); border-radius: 10px; padding: 10px; font-family: inherit; font-size: 13px; }
@@ -206,6 +208,7 @@ html, body {
 }
 .ow-journey__count { font-size: 13px; font-weight: 700; color: var(--muted); }
 .ow-journey__exit { background: none; border: none; color: var(--muted); cursor: pointer; font-size: 13px; }
+.ow-journey__mute { background: var(--sky); border: none; border-radius: 999px; width: 32px; height: 32px; cursor: pointer; font-size: 14px; }
 .ow-journey__next {
   background: linear-gradient(135deg, var(--blue), var(--blue-soft)); color: #fff; border: none;
   border-radius: 999px; padding: 8px 18px; font-weight: 700; cursor: pointer; font-size: 13px;

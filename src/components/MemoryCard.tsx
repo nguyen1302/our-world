@@ -76,14 +76,20 @@ export default function MemoryCard({ isAdmin, onChanged }: { isAdmin: boolean; o
           ) : (
             <h2 className="ow-card__title">{detail.memory.title}</h2>
           )}
-          <p className="ow-card__meta">
-            {[detail.memory.placeName, detail.memory.city, detail.memory.country]
-              .filter(Boolean)
-              .join(" · ")}
-            <br />
-            {new Date(detail.memory.startAt).toLocaleDateString("vi-VN")} –{" "}
-            {new Date(detail.memory.endAt).toLocaleDateString("vi-VN")}
-          </p>
+          <div className="ow-card__meta">
+            <span className="ow-card__date">
+              📅 {new Date(detail.memory.startAt).toLocaleDateString("vi-VN")}
+              {new Date(detail.memory.startAt).toDateString() !==
+                new Date(detail.memory.endAt).toDateString() &&
+                ` – ${new Date(detail.memory.endAt).toLocaleDateString("vi-VN")}`}
+            </span>
+            <span className="ow-card__place">
+              📍 {[detail.memory.placeName, detail.memory.city, detail.memory.country].filter(Boolean).join(", ")}
+            </span>
+          </div>
+          {!isAdmin && detail.memory.description && (
+            <p className="ow-card__desc">{detail.memory.description}</p>
+          )}
 
           <div className="ow-gallery">
             {detail.photos.map((p) => (
@@ -97,7 +103,7 @@ export default function MemoryCard({ isAdmin, onChanged }: { isAdmin: boolean; o
             ))}
           </div>
 
-          {isAdmin ? (
+          {isAdmin && (
             <>
               <textarea
                 className="ow-card__desc-input"
@@ -112,8 +118,6 @@ export default function MemoryCard({ isAdmin, onChanged }: { isAdmin: boolean; o
                 </button>
               </div>
             </>
-          ) : (
-            detail.memory.description && <p className="ow-card__desc">{detail.memory.description}</p>
           )}
         </>
       )}

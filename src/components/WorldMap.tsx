@@ -137,7 +137,7 @@ function JourneyController() {
       const s = stops[index];
       if (!s) return;
       setSelected(s.id);
-      map.flyTo([s.lat, s.lng], index === 0 ? 12 : 13, { duration: 0.8 });
+      map.flyTo([s.lat, s.lng], index === 0 ? 11 : 12, { duration: 1.4, easeLinearity: 0.2 });
       place(s.lat, s.lng, segVehicle(stops, Math.max(0, index - 1)), false);
       return;
     }
@@ -154,13 +154,14 @@ function JourneyController() {
     map.flyToBounds(L.latLngBounds([from.lat, from.lng], [to.lat, to.lng]), {
       paddingTopLeft: [80, 130],
       paddingBottomRight: [400, 170],
-      maxZoom: 11,
-      duration: 0.8,
+      maxZoom: 10,
+      duration: 1.5,
+      easeLinearity: 0.2,
     });
     place(from.lat, from.lng, type, flip);
 
     timerRef.current = setTimeout(() => {
-      const dur = 1500 + Math.min(km, 700);
+      const dur = 2600 + Math.min(km * 3, 2600);
       const startTs = performance.now();
       const step = (now: number) => {
         const p = Math.min(1, (now - startTs) / dur);
@@ -170,7 +171,7 @@ function JourneyController() {
         else arrive();
       };
       rafRef.current = requestAnimationFrame(step);
-    }, 850);
+    }, 1600);
 
     return cancel;
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -183,7 +184,7 @@ function FocusController() {
   const map = useMap();
   const focus = useMapStore((s) => s.focus);
   useEffect(() => {
-    if (focus) map.flyTo([focus.lat, focus.lng], focus.zoom, { duration: 0.7 });
+    if (focus) map.flyTo([focus.lat, focus.lng], focus.zoom, { duration: 1.1, easeLinearity: 0.25 });
   }, [map, focus]);
   return null;
 }
@@ -220,17 +221,30 @@ export default function WorldMap({ geo }: { geo: unknown }) {
     .map((m) => [m.lat, m.lng] as [number, number]);
 
   return (
-    <MapContainer center={VN_CENTER} zoom={VN_ZOOM} className="ow-map" scrollWheelZoom>
+    <MapContainer
+      center={VN_CENTER}
+      zoom={VN_ZOOM}
+      className="ow-map"
+      scrollWheelZoom
+      preferCanvas
+      zoomControl
+    >
       {/* Satellite imagery (like the iPhone Find map) + a place-label overlay */}
       <TileLayer
         attribution='Tiles &copy; Esri — Source: Esri, Maxar, Earthstar Geographics'
         url="https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}"
         maxZoom={19}
+        keepBuffer={6}
+        updateWhenZooming={false}
+        updateWhenIdle
       />
       <TileLayer
         attribution='&copy; <a href="https://carto.com/attributions">CARTO</a>'
         url="https://{s}.basemaps.cartocdn.com/rastertiles/voyager_only_labels/{z}/{x}/{y}{r}.png"
         pane="overlayPane"
+        keepBuffer={6}
+        updateWhenZooming={false}
+        updateWhenIdle
       />
       {geo ? <ScratchOverlay /> : null}
       {showRoute && routePoints.length > 1 ? (

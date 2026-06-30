@@ -1,6 +1,8 @@
 "use client";
+import { useEffect, useState } from "react";
 import { useJourney } from "./journeyStore";
 import { useMapStore } from "./mapStore";
+import { startMusic, stopMusic, setMusicMuted, isMusicMuted } from "./journeyMusic";
 
 export default function JourneyControls() {
   const playing = useJourney((s) => s.playing);
@@ -10,6 +12,13 @@ export default function JourneyControls() {
   const next = useJourney((s) => s.next);
   const exit = useJourney((s) => s.exit);
   const closeDetail = useMapStore((s) => s.closeDetail);
+  const [muted, setMuted] = useState(isMusicMuted());
+
+  useEffect(() => {
+    if (playing) startMusic();
+    else stopMusic();
+    return () => stopMusic();
+  }, [playing]);
 
   if (!playing) return null;
   const last = index >= total - 1;
@@ -24,6 +33,17 @@ export default function JourneyControls() {
         }}
       >
         ✕ Thoát
+      </button>
+      <button
+        className="ow-journey__mute"
+        title={muted ? "Bật nhạc" : "Tắt nhạc"}
+        onClick={() => {
+          const m = !muted;
+          setMuted(m);
+          setMusicMuted(m);
+        }}
+      >
+        {muted ? "🔇" : "🎵"}
       </button>
       <span className="ow-journey__count">
         {index + 1} / {total}

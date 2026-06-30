@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "Our World",
+  title: "We Were Here",
   description: "Bản đồ ký ức của hai người",
 };
 

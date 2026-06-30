@@ -28,7 +28,7 @@ export default function LoginPage() {
   return (
     <div className="ow-login">
       <form onSubmit={submit}>
-        <h1>Our World ♥</h1>
+        <h1>We Were Here <span>♥</span></h1>
         <input placeholder="Tên đăng nhập" value={username} onChange={(e) => setUsername(e.target.value)} autoCapitalize="none" />
         <input type="password" placeholder="Mật khẩu" value={password} onChange={(e) => setPassword(e.target.value)} />
         {err && <div className="ow-err">{err}</div>}
