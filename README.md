@@ -1,4 +1,4 @@
-# Our World – Digital Memory Map
+# We Were Here – Digital Memory Map
 
 Bản đồ ký ức của hai người. Import ảnh từ iPhone → tự đọc EXIF/GPS, reverse geocode,
 tạo thumbnail, gom thành **Memory** → hiện trên bản đồ Việt Nam + timeline.

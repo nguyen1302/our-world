@@ -11,7 +11,7 @@ export async function seed() {
 
   // Default space (fixed id so all rows share it in v1).
   await db.execute(sql`
-    INSERT INTO spaces (id, name) VALUES (${config.defaultSpaceId}, 'Our World')
+    INSERT INTO spaces (id, name) VALUES (${config.defaultSpaceId}, 'We Were Here')
     ON CONFLICT (id) DO NOTHING
   `);
 

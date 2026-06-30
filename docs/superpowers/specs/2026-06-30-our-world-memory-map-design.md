@@ -1,4 +1,4 @@
-# Our World – Digital Memory Map — Design Spec
+# We Were Here – Digital Memory Map — Design Spec
 
 - **Ngày:** 2026-06-30
 - **Trạng thái:** Approved design (chờ chuyển sang implementation plan)
