@@ -1,0 +1,117 @@
+import {
+  pgTable,
+  uuid,
+  text,
+  doublePrecision,
+  timestamp,
+  integer,
+  jsonb,
+  index,
+} from "drizzle-orm/pg-core";
+
+export const spaces = pgTable("spaces", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  name: text("name").notNull(),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+});
+
+export const users = pgTable(
+  "users",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    spaceId: uuid("space_id").notNull(),
+    username: text("username").notNull().unique(),
+    passwordHash: text("password_hash").notNull(),
+    role: text("role").notNull(), // 'admin' | 'viewer'
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => ({ spaceIdx: index("users_space_idx").on(t.spaceId) }),
+);
+
+export const memories = pgTable(
+  "memories",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    spaceId: uuid("space_id").notNull(),
+    title: text("title").notNull(),
+    description: text("description"),
+    country: text("country"),
+    city: text("city"),
+    placeName: text("place_name"),
+    provinceCode: text("province_code"),
+    lat: doublePrecision("lat").notNull(),
+    lng: doublePrecision("lng").notNull(),
+    startAt: timestamp("start_at", { withTimezone: true }).notNull(),
+    endAt: timestamp("end_at", { withTimezone: true }).notNull(),
+    coverPhotoId: uuid("cover_photo_id"),
+    deletedAt: timestamp("deleted_at", { withTimezone: true }),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => ({
+    spaceIdx: index("memories_space_idx").on(t.spaceId),
+    startIdx: index("memories_start_idx").on(t.startAt),
+    provinceIdx: index("memories_province_idx").on(t.provinceCode),
+  }),
+);
+
+export const photos = pgTable(
+  "photos",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    spaceId: uuid("space_id").notNull(),
+    memoryId: uuid("memory_id"),
+    type: text("type").notNull().default("photo"), // 'photo' | 'video'
+    s3KeyOriginal: text("s3_key_original").notNull(),
+    s3KeyThumb: text("s3_key_thumb"),
+    takenAt: timestamp("taken_at", { withTimezone: true }),
+    lat: doublePrecision("lat"),
+    lng: doublePrecision("lng"),
+    width: integer("width"),
+    height: integer("height"),
+    duration: doublePrecision("duration"),
+    status: text("status").notNull().default("pending"), // pending|processed|needs_review|error
+    exifJson: jsonb("exif_json"),
+    deletedAt: timestamp("deleted_at", { withTimezone: true }),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => ({
+    spaceIdx: index("photos_space_idx").on(t.spaceId),
+    memoryIdx: index("photos_memory_idx").on(t.memoryId),
+    statusIdx: index("photos_status_idx").on(t.status),
+  }),
+);
+
+export const jobs = pgTable(
+  "jobs",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    type: text("type").notNull(),
+    payload: jsonb("payload").notNull(),
+    status: text("status").notNull().default("queued"), // queued|running|done|error
+    attempts: integer("attempts").notNull().default(0),
+    lastError: text("last_error"),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => ({ statusIdx: index("jobs_status_idx").on(t.status) }),
+);
+
+export const geocodeCache = pgTable(
+  "geocode_cache",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    latKey: text("lat_key").notNull(),
+    lngKey: text("lng_key").notNull(),
+    country: text("country"),
+    city: text("city"),
+    placeName: text("place_name"),
+    provinceCode: text("province_code"),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => ({ cellIdx: index("geocode_cell_idx").on(t.latKey, t.lngKey) }),
+);
+
+export type Memory = typeof memories.$inferSelect;
+export type Photo = typeof photos.$inferSelect;
+export type Job = typeof jobs.$inferSelect;
