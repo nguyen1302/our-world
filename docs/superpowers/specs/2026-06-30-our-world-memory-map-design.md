@@ -199,7 +199,7 @@ Thiết kế đã chừa sẵn:
 - **Nominatim rate limit** → cache + fallback offline.
 - **iPhone Safari** quyết định luồng upload (input file nhận nhiều ảnh) → cần test thực tế trên Safari.
 
-## 14. Journey replay — phương tiện di chuyển (bổ sung sau v1)
+## 14. Journey replay — phương tiện di chuyển
 
 Tính năng "xem lại hành trình": nút **▶ Play** cho một phương tiện chạy lần lượt qua các Memory **theo thứ tự thời gian**, đồng bộ trên **cả bản đồ lẫn timeline**.
 

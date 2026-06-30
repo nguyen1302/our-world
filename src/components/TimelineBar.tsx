@@ -4,120 +4,152 @@ import { useMapStore } from "./mapStore";
 import { useJourney, vehicleForDistance, haversineKm } from "./journeyStore";
 import { vehicleSvg, type VehicleType } from "./vehicles";
 
-const MONTHS = ["01","02","03","04","05","06","07","08","09","10","11","12"];
+const PAD = 50;
+const ease = (t: number) => (t < 0.5 ? 2 * t * t : 1 - Math.pow(-2 * t + 2, 2) / 2);
 
 export default function TimelineBar() {
   const memories = useMapStore((s) => s.memories);
-  const previewId = useMapStore((s) => s.previewId);
-  const preview = useMapStore((s) => s.preview);
+  const selectedId = useMapStore((s) => s.selectedId);
+  const open = useMapStore((s) => s.open);
   const trackRef = useRef<HTMLDivElement>(null);
-  const nodeEls = useRef<(HTMLButtonElement | null)[]>([]);
+  const vehRef = useRef<HTMLDivElement>(null);
+  const [zoom, setZoom] = useState(1);
 
   const playing = useJourney((s) => s.playing);
   const phase = useJourney((s) => s.phase);
   const jIndex = useJourney((s) => s.index);
   const progress = useJourney((s) => s.progress);
   const faces = useJourney((s) => s.faces);
+  const startJourney = useJourney((s) => s.start);
 
-  const [veh, setVeh] = useState<{ left: number; type: VehicleType; flip: boolean; show: boolean }>({
-    left: 0,
-    type: "bike",
-    flip: false,
-    show: false,
-  });
+  const ord = useMemo(() => [...memories].sort((a, b) => a.startAt.localeCompare(b.startAt)), [memories]);
 
-  // Sorted oldest -> newest, with a year label inserted when the year changes.
-  const items = useMemo(() => {
-    const sorted = [...memories].sort((a, b) => a.startAt.localeCompare(b.startAt));
-    let lastYear: number | null = null;
-    return sorted.map((m) => {
-      const d = new Date(m.startAt);
-      const year = d.getFullYear();
-      const showYear = year !== lastYear;
-      lastYear = year;
-      return { m, year, day: d.getDate(), month: d.getMonth(), showYear };
-    });
-  }, [memories]);
+  const geom = useMemo(() => {
+    if (ord.length === 0) return null;
+    const t0 = new Date(ord[0].startAt).getTime();
+    const pxPerDay = 2.4 * zoom;
+    const dayOf = (iso: string) => (new Date(iso).getTime() - t0) / 86400000;
+    const xOf = (iso: string) => PAD + dayOf(iso) * pxPerDay;
+    const totalW = Math.max(640, PAD * 2 + dayOf(ord[ord.length - 1].startAt) * pxPerDay);
+    return { xOf, totalW };
+  }, [ord, zoom]);
 
-  const sorted = useMemo(() => [...memories].sort((a, b) => a.startAt.localeCompare(b.startAt)), [memories]);
+  const ticks = useMemo(() => {
+    if (!geom) return [];
+    const seen: Record<string, boolean> = {};
+    const out: { year: string; x: number }[] = [];
+    for (const m of ord) {
+      const y = m.startAt.slice(0, 4);
+      if (!seen[y]) {
+        seen[y] = true;
+        out.push({ year: y, x: geom.xOf(m.startAt) });
+      }
+    }
+    return out;
+  }, [ord, geom]);
 
+  // scroll active bead into view
   useEffect(() => {
+    const el = trackRef.current;
+    if (!el) return;
+    const active = el.querySelector('[data-active="1"]') as HTMLElement | null;
+    if (active) el.scrollLeft = active.offsetLeft - el.clientWidth / 2 + active.clientWidth / 2;
+  }, [selectedId, zoom]);
+
+  // journey vehicle on the axis
+  useEffect(() => {
+    const veh = vehRef.current;
     const track = trackRef.current;
-    if (!playing || !track) {
-      setVeh((v) => (v.show ? { ...v, show: false } : v));
+    if (!veh || !track || !geom || !playing) {
+      if (veh) veh.style.display = "none";
       return;
     }
-    const centerOf = (i: number) => {
-      const el = nodeEls.current[i];
-      return el ? el.offsetLeft + el.offsetWidth / 2 : null;
-    };
-    let cx: number | null;
+    let x: number;
     let type: VehicleType = "bike";
     let flip = false;
     if (phase === "paused") {
-      cx = centerOf(jIndex);
-      const a = sorted[jIndex - 1];
-      const b = sorted[jIndex];
-      if (a && b) type = vehicleForDistance(haversineKm(a, b));
+      const m = ord[jIndex];
+      if (!m) return;
+      x = geom.xOf(m.startAt);
+      const a = ord[jIndex - 1];
+      if (a) type = vehicleForDistance(haversineKm(a, m));
     } else {
-      const a = centerOf(jIndex);
-      const b = centerOf(jIndex + 1);
-      if (a == null || b == null) return;
-      cx = a + (b - a) * progress;
-      const ma = sorted[jIndex];
-      const mb = sorted[jIndex + 1];
-      if (ma && mb) {
-        type = vehicleForDistance(haversineKm(ma, mb));
-        flip = mb.lng < ma.lng;
-      }
+      const a = ord[jIndex];
+      const b = ord[jIndex + 1];
+      if (!a || !b) return;
+      x = geom.xOf(a.startAt) + (geom.xOf(b.startAt) - geom.xOf(a.startAt)) * ease(progress);
+      type = vehicleForDistance(haversineKm(a, b));
+      flip = b.lng < a.lng;
     }
-    if (cx == null) return;
-    // keep the vehicle in view
-    track.scrollLeft = cx - track.clientWidth / 2;
-    setVeh({ left: cx - track.scrollLeft, type, flip, show: true });
-  }, [playing, phase, jIndex, progress, sorted, faces]);
+    veh.style.display = "block";
+    veh.style.transform = `translate(${x - 26}px,0) scaleX(${flip ? -1 : 1})`;
+    veh.innerHTML = `<div class="ow-bob" style="width:100%;height:100%">${vehicleSvg(type, faces, { id: "tlv" })}</div>`;
+    track.scrollLeft = x - track.clientWidth / 2;
+  }, [playing, phase, jIndex, progress, ord, geom, faces]);
 
-  if (memories.length === 0) {
-    return (
-      <div className="ow-tlbar ow-tlbar--empty">Chưa có kỷ niệm nào — hãy Import ảnh ♥</div>
-    );
-  }
+  const rangeLabel = ord.length ? `${ord[0].startAt.slice(0, 4)} – ${ord[ord.length - 1].startAt.slice(0, 4)}` : "";
 
   return (
     <div className="ow-tlbar">
-      <div className="ow-tlbar__track" ref={trackRef}>
-        {items.map(({ m, year, day, month, showYear }, i) => (
-          <div className="ow-tlnode-wrap" key={m.id}>
-            {showYear && <span className="ow-tlyear">{year}</span>}
-            <button
-              ref={(el) => {
-                nodeEls.current[i] = el;
-              }}
-              className={`ow-tlnode ${m.id === previewId ? "ow-tlnode--active" : ""}`}
-              onClick={() => preview(m.id)}
-              title={m.title}
-            >
-              <span
-                className={`ow-tlnode__thumb ${m.coverThumbUrl ? "" : "ow-tlnode__thumb--empty"}`}
-                style={m.coverThumbUrl ? { backgroundImage: `url('${m.coverThumbUrl}')` } : undefined}
-              />
-              <span className="ow-tlnode__labels">
-                <span className="ow-tlnode__date">
-                  {day}/{MONTHS[month]}
-                </span>
-                <span className="ow-tlnode__title">{m.title.split(" · ")[0]}</span>
-              </span>
-            </button>
-          </div>
-        ))}
-        {veh.show && (
-          <div
-            className="ow-tlvehicle"
-            style={{ left: veh.left }}
-            dangerouslySetInnerHTML={{ __html: vehicleSvg(veh.type, faces, { flip: veh.flip, size: 50, id: "tlv" }) }}
-          />
+      <div className="ow-tl-head">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#e9b872" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round">
+          <circle cx="12" cy="12" r="8.5" /><path d="M12 7.5V12l3 2" />
+        </svg>
+        <span className="ow-tl-title">Dòng thời gian</span>
+        {ord.length > 0 && <span className="ow-tl-sep">·</span>}
+        <span className="ow-tl-range">{rangeLabel}</span>
+        <div className="ow-tl-spacer" />
+        {ord.length > 1 && !playing && (
+          <button className="ow-tl-play" onClick={() => startJourney(ord.length)}>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M7 5v14l12-7z" /></svg>
+            Chuyến đi
+          </button>
         )}
+        <div className="ow-tl-zoom">
+          <button onClick={() => setZoom((z) => Math.max(0.45, z / 1.55))} title="Thu nhỏ">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round"><path d="M5 12h14" /></svg>
+          </button>
+          <span />
+          <button onClick={() => setZoom((z) => Math.min(4, z * 1.55))} title="Phóng to">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round"><path d="M12 5v14M5 12h14" /></svg>
+          </button>
+        </div>
       </div>
+
+      {ord.length === 0 ? (
+        <div className="ow-tlempty">Chưa có kỷ niệm nào — hãy import ảnh.</div>
+      ) : (
+        <div className="ow-tlbar__track" ref={trackRef}>
+          <div className="ow-tlbar__inner" style={{ width: geom!.totalW }}>
+            <div className="ow-tl-axis" />
+            {ticks.map((t) => (
+              <div className="ow-tltick" key={t.year} style={{ left: t.x - 18 }}>
+                <div className="ow-tltick__line" />
+                <div className="ow-tltick__label">{t.year}</div>
+              </div>
+            ))}
+            {ord.map((m) => {
+              const active = m.id === selectedId;
+              return (
+                <div
+                  key={m.id}
+                  data-active={active ? "1" : "0"}
+                  className={`ow-tlbead ${active ? "ow-tlbead--active" : ""}`}
+                  style={{ left: geom!.xOf(m.startAt), zIndex: active ? 4 : 3 }}
+                  onClick={() => open(m.id)}
+                  title={m.title}
+                >
+                  <div className="ow-tlbead__thumb">
+                    <img src={m.coverThumbUrl ?? ""} alt="" loading="lazy" />
+                  </div>
+                  <div className="ow-tlbead__label">Th{Number(m.startAt.slice(5, 7))}</div>
+                </div>
+              );
+            })}
+            <div className="ow-tlvehicle" ref={vehRef} />
+          </div>
+        </div>
+      )}
     </div>
   );
 }

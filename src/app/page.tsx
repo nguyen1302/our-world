@@ -3,7 +3,7 @@ import { useCallback, useEffect, useState } from "react";
 import dynamic from "next/dynamic";
 import { useRouter } from "next/navigation";
 import { useMapStore } from "@/components/mapStore";
-import { useJourney } from "@/components/journeyStore";
+import { setMusicTrack } from "@/components/journeyMusic";
 import Stats from "@/components/Stats";
 import OnThisDay from "@/components/OnThisDay";
 import TimelineBar from "@/components/TimelineBar";
@@ -12,7 +12,6 @@ import MemoryCard from "@/components/MemoryCard";
 import JourneyControls from "@/components/JourneyControls";
 import FaceModal from "@/components/FaceModal";
 import MusicModal from "@/components/MusicModal";
-import { setMusicTrack } from "@/components/journeyMusic";
 
 const WorldMap = dynamic(() => import("@/components/WorldMap"), { ssr: false });
 
@@ -21,12 +20,9 @@ export default function Home() {
   const setMemories = useMapStore((s) => s.setMemories);
   const setScratch = useMapStore((s) => s.setScratch);
   const setStats = useMapStore((s) => s.setStats);
-  const memories = useMapStore((s) => s.memories);
+  const showRoute = useMapStore((s) => s.showRoute);
+  const toggleRoute = useMapStore((s) => s.toggleRoute);
 
-  const startJourney = useJourney((s) => s.start);
-  const playing = useJourney((s) => s.playing);
-
-  const [geo, setGeo] = useState<unknown>(null);
   const [role, setRole] = useState<"admin" | "viewer" | null>(null);
   const [showFaces, setShowFaces] = useState(false);
   const [showMusic, setShowMusic] = useState(false);
@@ -44,7 +40,6 @@ export default function Home() {
 
   useEffect(() => {
     fetch("/api/me").then((r) => (r.ok ? r.json() : null)).then((d) => setRole(d?.role ?? null));
-    fetch("/vn-provinces.geojson").then((r) => r.json()).then(setGeo).catch(() => setGeo(null));
     fetch("/api/music").then((r) => (r.ok ? r.json() : null)).then((d) => setMusicTrack(d?.activeUrl ?? null));
     refresh();
   }, [refresh]);
@@ -55,37 +50,40 @@ export default function Home() {
   }
 
   const isAdmin = role === "admin";
-  const canPlay = memories.length > 1;
 
   return (
     <div className="ow-app">
-      <WorldMap geo={geo} />
+      <WorldMap />
 
       <header className="ow-topbar">
         <div className="ow-brand">
-          We Were Here <span>♥</span>
+          <div className="ow-brand__dot" />
+          <div>
+            <div className="ow-brand__name">We Were Here</div>
+            <div className="ow-brand__sub">Bản đồ ký ức</div>
+          </div>
         </div>
-        <Stats />
-        {canPlay && !playing && (
-          <button className="ow-play" title="Xem lại hành trình" onClick={() => startJourney(memories.length)}>
-            ▶
+
+        <div className="ow-topright">
+          <Stats />
+          <OnThisDay />
+          <button className={`ow-pillbtn ${showRoute ? "ow-pillbtn--on" : ""}`} onClick={toggleRoute}>
+            <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><circle cx="6" cy="19" r="2.4" /><circle cx="18" cy="5" r="2.4" /><path d="M8 17.5C12 15 9 9 13.5 6.5" /></svg>
+            <span>Tuyến đường</span>
           </button>
-        )}
-        <TopMenu
-          isAdmin={isAdmin}
-          onUploaded={refresh}
-          onLogout={logout}
-          onFaces={() => setShowFaces(true)}
-          onMusic={() => setShowMusic(true)}
-        />
+          <TopMenu
+            isAdmin={isAdmin}
+            onUploaded={refresh}
+            onLogout={logout}
+            onFaces={() => setShowFaces(true)}
+            onMusic={() => setShowMusic(true)}
+          />
+        </div>
       </header>
-
-      <OnThisDay />
-
-      <TimelineBar />
 
       <MemoryCard isAdmin={isAdmin} onChanged={refresh} />
       <JourneyControls />
+      <TimelineBar />
 
       {showFaces && <FaceModal onClose={() => setShowFaces(false)} />}
       {showMusic && <MusicModal onClose={() => setShowMusic(false)} />}

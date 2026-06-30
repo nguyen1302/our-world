@@ -6,30 +6,22 @@ export default function OnThisDay() {
   const open = useMapStore((s) => s.open);
 
   const today = new Date();
-  // Same day-of-year, but only in PAST years ("X năm trước").
-  const matches = memories.filter((m) => {
-    const d = new Date(m.startAt);
-    return (
-      d.getDate() === today.getDate() &&
-      d.getMonth() === today.getMonth() &&
-      d.getFullYear() < today.getFullYear()
-    );
-  });
+  const mmdd = `${String(today.getMonth() + 1).padStart(2, "0")}-${String(today.getDate()).padStart(2, "0")}`;
+  const match = memories
+    .filter((m) => m.startAt.slice(5, 10) === mmdd && Number(m.startAt.slice(0, 4)) < today.getFullYear())
+    .sort((a, b) => a.startAt.localeCompare(b.startAt))[0];
 
-  if (matches.length === 0) return null;
+  if (!match) return null;
+  const years = today.getFullYear() - Number(match.startAt.slice(0, 4));
+  const label = `${years} năm trước · ${match.city ?? ""}`;
 
   return (
-    <div className="ow-onthisday">
-      <span className="ow-onthisday__badge">On This Day ♥</span>
-      {matches.map((m) => {
-        const years = today.getFullYear() - new Date(m.startAt).getFullYear();
-        return (
-          <button key={m.id} className="ow-onthisday__item" onClick={() => open(m.id)}>
-            <strong>{m.title}</strong>
-            <em>{years} năm trước</em>
-          </button>
-        );
-      })}
+    <div className="ow-otd" onClick={() => open(match.id)}>
+      <div className="ow-otd__dot" />
+      <div>
+        <div className="ow-otd__k">Ngày này</div>
+        <div className="ow-otd__v">{label}</div>
+      </div>
     </div>
   );
 }

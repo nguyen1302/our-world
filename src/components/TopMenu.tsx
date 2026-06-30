@@ -1,6 +1,5 @@
 "use client";
 import { useState } from "react";
-import { useMapStore } from "./mapStore";
 import UploadButton from "./UploadButton";
 
 export default function TopMenu({
@@ -17,13 +16,11 @@ export default function TopMenu({
   onMusic: () => void;
 }) {
   const [open, setOpen] = useState(false);
-  const showRoute = useMapStore((s) => s.showRoute);
-  const toggleRoute = useMapStore((s) => s.toggleRoute);
 
   return (
     <div className="ow-menu">
-      <button className="ow-menu__btn" aria-label="Menu" onClick={() => setOpen((o) => !o)}>
-        ☰
+      <button className="ow-pillbtn ow-iconbtn" aria-label="Menu" onClick={() => setOpen((o) => !o)}>
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M4 7h16M4 12h16M4 17h16" /></svg>
       </button>
       {open && <div className="ow-menu__backdrop" onClick={() => setOpen(false)} />}
       {open && (
@@ -33,41 +30,15 @@ export default function TopMenu({
               <UploadButton onUploaded={onUploaded} />
             </div>
           )}
-          <button
-            className="ow-menu__item"
-            onClick={() => {
-              toggleRoute();
-            }}
-          >
-            {showRoute ? "🫥 Ẩn hành trình" : "💞 Hiện hành trình"}
-          </button>
-          <button
-            className="ow-menu__item"
-            onClick={() => {
-              setOpen(false);
-              onFaces();
-            }}
-          >
+          <button className="ow-menu__item" onClick={() => { setOpen(false); onFaces(); }}>
             💕 Ghép mặt vào phương tiện
           </button>
           {isAdmin && (
-            <button
-              className="ow-menu__item"
-              onClick={() => {
-                setOpen(false);
-                onMusic();
-              }}
-            >
+            <button className="ow-menu__item" onClick={() => { setOpen(false); onMusic(); }}>
               🎵 Nhạc nền
             </button>
           )}
-          <button
-            className="ow-menu__item ow-menu__item--logout"
-            onClick={() => {
-              setOpen(false);
-              onLogout();
-            }}
-          >
+          <button className="ow-menu__item ow-menu__item--logout" onClick={() => { setOpen(false); onLogout(); }}>
             ⎋ Đăng xuất
           </button>
         </div>
