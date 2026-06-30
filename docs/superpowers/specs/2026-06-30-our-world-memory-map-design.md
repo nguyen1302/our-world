@@ -73,26 +73,27 @@ Browser (iPhone Safari)
 
 ## 5. Luồng upload (không chặn app server)
 
-1. Browser xin app N presigned PUT URL (app validate **chỉ image/* ** và kích thước tối đa).
+1. Browser xin app N presigned PUT URL (app validate **chỉ image/* **, **tối đa 80 ảnh/lần**). Sau khi upload, ảnh tự được gom vào đúng Place + Trip theo EXIF thời gian/GPS — không nhập tay.
 2. Browser upload thẳng ảnh lên S3.
 3. Browser POST danh sách S3 key về app → app tạo `photo` (status=`pending`) + enqueue `process_photo` job.
 4. Worker mỗi job: đọc EXIF (thời gian chụp, GPS), reverse geocode (cache), tạo thumbnail bằng sharp (**strip toàn bộ EXIF/GPS khỏi thumbnail**), cập nhật `photo`, rồi chạy clustering để gán hoặc tạo `Memory`.
 5. Photo không có GPS hoặc EXIF lỗi → vẫn lưu, gắn cờ `needs_review`, không lên map cho tới khi admin gán thủ công (tương lai) — v1: hiển thị trong danh sách "chưa định vị".
 6. Frontend revalidate (poll nhẹ hoặc refetch khi quay lại) → Memory hiện trên bản đồ.
 
-## 6. Clustering — gom ảnh thành Memory
+## 6. Clustering — hai cấp: Chuyến đi → Địa điểm
 
-Một Memory = một kỷ niệm (nhiều ảnh), không phải một ảnh.
+Gom **2 cấp** (incremental, chạy khi có ảnh mới):
 
-**Quy tắc:** hai ảnh thuộc cùng Memory nếu **gần nhau về không gian VÀ thời gian**:
-- Khoảng cách GPS < `CLUSTER_DISTANCE_KM` (mặc định **1.5 km**).
-- Khoảng cách thời gian tới ảnh kế tiếp trong cụm < `CLUSTER_TIME_GAP_HOURS` (mặc định **6 giờ**).
+**Cấp 1 — Place (Memory = một địa điểm):** ảnh thuộc cùng Memory nếu gần nhau không gian + thời gian:
+- Khoảng cách GPS < `CLUSTER_DISTANCE_KM` (mặc định **1.5 km**) **VÀ** thời gian cách [start–end] của Memory < `CLUSTER_TIME_GAP_HOURS` (mặc định **6 giờ**).
 
-Thuật toán (incremental, chạy khi có ảnh mới):
-1. Sắp ảnh theo `taken_at`.
-2. Tìm Memory hiện có mà ảnh mới thỏa cả 2 ngưỡng (so với khoảng thời gian + tâm vị trí của Memory) → gán vào.
-3. Không có → tạo Memory mới; `lat/lng` = trung bình tọa độ; `start_at`/`end_at` = min/max `taken_at`; `country/city/place_name` = từ reverse geocode của ảnh đại diện; `cover_photo_id` = ảnh đầu; `title` rule-based.
-4. Ngưỡng nằm trong config (env), chỉnh được không cần sửa code.
+**Cấp 2 — Trip (Chuyến đi = nhóm địa điểm):** mỗi Memory được gán vào một Trip nếu:
+- Khoảng cách tới tâm Trip < `TRIP_DISTANCE_KM` (mặc định **80 km**) **VÀ** thời gian cách [start–end] của Trip < `TRIP_GAP_HOURS` (mặc định **36 giờ**).
+- Không có → tạo Trip mới. Trip tự tính lại centroid/bounds/cover/title (`{city} · {khoảng ngày}`) từ các Memory thành viên.
+
+→ Ví dụ: **Nha Trang 3 ngày 2 đêm, đi nhiều nơi** = **1 Trip** chứa nhiều **Place** (bãi biển, tháp, Vinpearl…). Về nhà rồi đi tỉnh khác = Trip khác (vượt ngưỡng thời gian/khoảng cách).
+
+**Đơn vị hiển thị:** marker bản đồ / bead timeline / journey / thống kê đều theo **Trip**. Thẻ chi tiết mở Trip → liệt kê các **Place** (mỗi place một album ảnh). Ngưỡng đều trong config (env).
 
 ## 7. Đăng nhập & phân quyền
 
