@@ -1,0 +1,10 @@
+node_modules
+.next
+.git
+caddy_data
+caddy_config
+pgdata
+*.log
+.env
+.env.local
+docs
