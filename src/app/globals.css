@@ -185,6 +185,54 @@ html, body {
 .ow-login button { background: linear-gradient(135deg, var(--blue), var(--blue-soft)); color: #fff; border: none; border-radius: 12px; padding: 12px; font-size: 15px; font-weight: 700; cursor: pointer; }
 .ow-login .ow-err { color: #dc2626; font-size: 13px; text-align: center; }
 
+/* ---------- Journey: play button, vehicles, controls ---------- */
+.ow-play {
+  flex-shrink: 0; width: 40px; height: 40px; border-radius: 12px; border: none; cursor: pointer;
+  color: #fff; font-size: 15px; background: linear-gradient(135deg, var(--amber), #d98c2b);
+  box-shadow: 0 2px 8px rgba(224,161,60,.45);
+}
+.ow-vehicle { background: transparent !important; border: none !important; }
+
+.ow-tlvehicle {
+  position: absolute; top: 50%; transform: translate(-50%, -100%); z-index: 5; pointer-events: none;
+}
+
+.ow-journey {
+  position: absolute; left: 50%; transform: translateX(-50%); z-index: 1200;
+  bottom: calc(var(--tlbar-h) + 22px);
+  display: flex; align-items: center; gap: 12px; padding: 8px 10px 8px 14px;
+  background: var(--glass); backdrop-filter: blur(14px); border: 1px solid var(--line);
+  border-radius: 999px; box-shadow: var(--shadow);
+}
+.ow-journey__count { font-size: 13px; font-weight: 700; color: var(--muted); }
+.ow-journey__exit { background: none; border: none; color: var(--muted); cursor: pointer; font-size: 13px; }
+.ow-journey__next {
+  background: linear-gradient(135deg, var(--blue), var(--blue-soft)); color: #fff; border: none;
+  border-radius: 999px; padding: 8px 18px; font-weight: 700; cursor: pointer; font-size: 13px;
+}
+.ow-journey__next:disabled { opacity: .6; cursor: default; }
+
+/* ---------- Face modal + cropper ---------- */
+.ow-modal { position: fixed; inset: 0; background: rgba(2,6,23,.55); z-index: 2000; display: flex; align-items: center; justify-content: center; padding: 16px; }
+.ow-modal__box { position: relative; background: #fff; border-radius: 18px; box-shadow: var(--shadow); padding: 20px; width: 340px; max-width: 92vw; }
+.ow-modal__box h3 { margin: 0 0 6px; color: var(--ink); }
+.ow-modal__desc { font-size: 13px; color: var(--muted); margin: 0 0 14px; }
+.ow-faces { display: flex; gap: 16px; justify-content: center; }
+.ow-faceslot { display: flex; flex-direction: column; align-items: center; gap: 6px; }
+.ow-faceslot__preview {
+  width: 96px; height: 96px; border-radius: 50%; background: var(--sky) center/cover; border: 2px solid var(--line);
+  display: flex; align-items: center; justify-content: center; color: var(--muted); font-size: 12px;
+}
+.ow-faceslot button { background: linear-gradient(135deg, var(--blue), var(--blue-soft)); color: #fff; border: none; border-radius: 8px; padding: 6px 12px; font-size: 12px; cursor: pointer; }
+.ow-faceslot .ow-link { background: none; color: #dc2626; padding: 0; }
+.ow-crop { display: flex; flex-direction: column; align-items: center; gap: 10px; }
+.ow-crop__hint { font-size: 12px; color: var(--muted); margin: 0; text-align: center; }
+.ow-crop__canvas { border-radius: 12px; background: #0f172a; touch-action: none; cursor: grab; }
+.ow-crop input[type="range"] { width: 100%; }
+.ow-crop__actions { display: flex; gap: 8px; }
+.ow-crop__actions button { border: 1px solid var(--line); background: #fff; border-radius: 8px; padding: 8px 14px; cursor: pointer; }
+.ow-crop__actions .ow-primary { background: linear-gradient(135deg, var(--blue), var(--blue-soft)); color: #fff; border: none; font-weight: 700; }
+
 /* ---------- Responsive ---------- */
 @media (max-width: 640px) {
   :root { --tlbar-h: 92px; }

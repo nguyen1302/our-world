@@ -7,10 +7,12 @@ export default function TopMenu({
   isAdmin,
   onUploaded,
   onLogout,
+  onFaces,
 }: {
   isAdmin: boolean;
   onUploaded: () => void;
   onLogout: () => void;
+  onFaces: () => void;
 }) {
   const [open, setOpen] = useState(false);
   const showRoute = useMapStore((s) => s.showRoute);
@@ -36,6 +38,15 @@ export default function TopMenu({
             }}
           >
             {showRoute ? "🫥 Ẩn hành trình" : "💞 Hiện hành trình"}
+          </button>
+          <button
+            className="ow-menu__item"
+            onClick={() => {
+              setOpen(false);
+              onFaces();
+            }}
+          >
+            💕 Ghép mặt vào phương tiện
           </button>
           <button
             className="ow-menu__item ow-menu__item--logout"

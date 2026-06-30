@@ -1,5 +1,5 @@
 "use client";
-import { useEffect } from "react";
+import { useEffect, useMemo, useRef } from "react";
 import { MapContainer, TileLayer, Polyline, GeoJSON, useMap } from "react-leaflet";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
@@ -7,6 +7,8 @@ import "leaflet.markercluster/dist/MarkerCluster.css";
 import "leaflet.markercluster/dist/MarkerCluster.Default.css";
 import "leaflet.markercluster";
 import { useMapStore, type MemoryMarker } from "./mapStore";
+import { useJourney, vehicleForDistance, haversineKm } from "./journeyStore";
+import { vehicleSvg, type VehicleType } from "./vehicles";
 
 const VN_CENTER: [number, number] = [16.0, 107.8];
 const VN_ZOOM = 6;
@@ -77,6 +79,106 @@ function PreviewController() {
   return null;
 }
 
+function orderedStops(memories: MemoryMarker[]): MemoryMarker[] {
+  return [...memories].sort((a, b) => a.startAt.localeCompare(b.startAt));
+}
+
+function segVehicle(stops: MemoryMarker[], i: number): VehicleType {
+  const a = stops[i];
+  const b = stops[i + 1];
+  if (!a || !b) return "bike";
+  return vehicleForDistance(haversineKm(a, b));
+}
+
+/** Drives the journey camera + vehicle on the map: zoom-out to frame the segment,
+ *  move the vehicle on the static map, then zoom-in to the arrival stop. */
+function JourneyController() {
+  const map = useMap();
+  const memories = useMapStore((s) => s.memories);
+  const setSelected = useMapStore((s) => s.setSelected);
+  const playing = useJourney((s) => s.playing);
+  const phase = useJourney((s) => s.phase);
+  const index = useJourney((s) => s.index);
+  const faces = useJourney((s) => s.faces);
+  const setProgress = useJourney((s) => s.setProgress);
+  const arrive = useJourney((s) => s.arrive);
+
+  const stops = useMemo(() => orderedStops(memories), [memories]);
+  const markerRef = useRef<L.Marker | null>(null);
+  const rafRef = useRef<number>(0);
+  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  function place(lat: number, lng: number, type: VehicleType, flip: boolean) {
+    const html = vehicleSvg(type, faces, { flip, size: 66, id: "mapv" });
+    const icon = L.divIcon({ className: "ow-vehicle", html, iconSize: [66, 42], iconAnchor: [33, 30] });
+    if (!markerRef.current) {
+      markerRef.current = L.marker([lat, lng], { icon, zIndexOffset: 1000, interactive: false }).addTo(map);
+    } else {
+      markerRef.current.setIcon(icon);
+      markerRef.current.setLatLng([lat, lng]);
+    }
+  }
+
+  useEffect(() => {
+    if (!playing && markerRef.current) {
+      map.removeLayer(markerRef.current);
+      markerRef.current = null;
+    }
+  }, [playing, map]);
+
+  useEffect(() => {
+    if (!playing || stops.length === 0) return;
+    const cancel = () => {
+      if (rafRef.current) cancelAnimationFrame(rafRef.current);
+      if (timerRef.current) clearTimeout(timerRef.current);
+    };
+
+    if (phase === "paused") {
+      const s = stops[index];
+      if (!s) return;
+      setSelected(s.id);
+      map.flyTo([s.lat, s.lng], index === 0 ? 12 : 13, { duration: 0.8 });
+      place(s.lat, s.lng, segVehicle(stops, Math.max(0, index - 1)), false);
+      return;
+    }
+
+    // moving: index -> index+1
+    setSelected(null);
+    const from = stops[index];
+    const to = stops[index + 1];
+    if (!to) return;
+    const km = haversineKm(from, to);
+    const type = vehicleForDistance(km);
+    const flip = to.lng < from.lng;
+
+    map.flyToBounds(L.latLngBounds([from.lat, from.lng], [to.lat, to.lng]), {
+      paddingTopLeft: [80, 130],
+      paddingBottomRight: [400, 170],
+      maxZoom: 11,
+      duration: 0.8,
+    });
+    place(from.lat, from.lng, type, flip);
+
+    timerRef.current = setTimeout(() => {
+      const dur = 1500 + Math.min(km, 700);
+      const startTs = performance.now();
+      const step = (now: number) => {
+        const p = Math.min(1, (now - startTs) / dur);
+        setProgress(p);
+        markerRef.current?.setLatLng([from.lat + (to.lat - from.lat) * p, from.lng + (to.lng - from.lng) * p]);
+        if (p < 1) rafRef.current = requestAnimationFrame(step);
+        else arrive();
+      };
+      rafRef.current = requestAnimationFrame(step);
+    }, 850);
+
+    return cancel;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [playing, phase, index, stops, faces, map]);
+
+  return null;
+}
+
 function FocusController() {
   const map = useMap();
   const focus = useMapStore((s) => s.focus);
@@ -137,6 +239,7 @@ export default function WorldMap({ geo }: { geo: unknown }) {
       <ClusterLayer memories={memories} />
       <PreviewController />
       <FocusController />
+      <JourneyController />
     </MapContainer>
   );
 }

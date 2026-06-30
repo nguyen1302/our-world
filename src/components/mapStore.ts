@@ -48,6 +48,7 @@ interface MapState {
   /** Map marker: open the detail card. */
   open: (id: string) => void;
   closeDetail: () => void;
+  setSelected: (id: string | null) => void;
   toggleRoute: () => void;
 }
 
@@ -77,5 +78,7 @@ export const useMapStore = create<MapState>((set, get) => ({
     if (m) set({ focus: { lat: m.lat, lng: m.lng, zoom: 13, nonce: Date.now() } });
   },
   closeDetail: () => set({ selectedId: null }),
+  /** Show the detail card without moving the camera (journey controls the map). */
+  setSelected: (id) => set({ selectedId: id }),
   toggleRoute: () => set((s) => ({ showRoute: !s.showRoute })),
 }));

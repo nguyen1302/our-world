@@ -3,11 +3,14 @@ import { useCallback, useEffect, useState } from "react";
 import dynamic from "next/dynamic";
 import { useRouter } from "next/navigation";
 import { useMapStore } from "@/components/mapStore";
+import { useJourney } from "@/components/journeyStore";
 import Stats from "@/components/Stats";
 import OnThisDay from "@/components/OnThisDay";
 import TimelineBar from "@/components/TimelineBar";
 import TopMenu from "@/components/TopMenu";
 import MemoryCard from "@/components/MemoryCard";
+import JourneyControls from "@/components/JourneyControls";
+import FaceModal from "@/components/FaceModal";
 
 const WorldMap = dynamic(() => import("@/components/WorldMap"), { ssr: false });
 
@@ -16,9 +19,14 @@ export default function Home() {
   const setMemories = useMapStore((s) => s.setMemories);
   const setScratch = useMapStore((s) => s.setScratch);
   const setStats = useMapStore((s) => s.setStats);
+  const memories = useMapStore((s) => s.memories);
+
+  const startJourney = useJourney((s) => s.start);
+  const playing = useJourney((s) => s.playing);
 
   const [geo, setGeo] = useState<unknown>(null);
   const [role, setRole] = useState<"admin" | "viewer" | null>(null);
+  const [showFaces, setShowFaces] = useState(false);
 
   const refresh = useCallback(async () => {
     const [m, sc, st] = await Promise.all([
@@ -43,6 +51,7 @@ export default function Home() {
   }
 
   const isAdmin = role === "admin";
+  const canPlay = memories.length > 1;
 
   return (
     <div className="ow-app">
@@ -53,7 +62,12 @@ export default function Home() {
           Our World <span>♥</span>
         </div>
         <Stats />
-        <TopMenu isAdmin={isAdmin} onUploaded={refresh} onLogout={logout} />
+        {canPlay && !playing && (
+          <button className="ow-play" title="Xem lại hành trình" onClick={() => startJourney(memories.length)}>
+            ▶
+          </button>
+        )}
+        <TopMenu isAdmin={isAdmin} onUploaded={refresh} onLogout={logout} onFaces={() => setShowFaces(true)} />
       </header>
 
       <OnThisDay />
@@ -61,6 +75,9 @@ export default function Home() {
       <TimelineBar />
 
       <MemoryCard isAdmin={isAdmin} onChanged={refresh} />
+      <JourneyControls />
+
+      {showFaces && <FaceModal onClose={() => setShowFaces(false)} />}
     </div>
   );
 }
