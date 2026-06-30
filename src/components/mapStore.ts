@@ -33,6 +33,9 @@ interface MapState {
   memories: MemoryMarker[];
   scratchCodes: string[];
   stats: Stats | null;
+  /** Highlighted on the map + preview bubble shown (e.g. from the timeline). */
+  previewId: string | null;
+  /** Opened in the detail card (only by clicking the map marker). */
   selectedId: string | null;
   showRoute: boolean;
   focus: FocusTarget | null;
@@ -40,15 +43,19 @@ interface MapState {
   setMemories: (m: MemoryMarker[]) => void;
   setScratch: (codes: string[]) => void;
   setStats: (s: Stats) => void;
-  select: (id: string | null) => void;
+  /** Timeline: fly to the marker and preview it, but do NOT open detail. */
+  preview: (id: string | null) => void;
+  /** Map marker: open the detail card. */
+  open: (id: string) => void;
+  closeDetail: () => void;
   toggleRoute: () => void;
-  focusOn: (lat: number, lng: number, zoom?: number) => void;
 }
 
 export const useMapStore = create<MapState>((set, get) => ({
   memories: [],
   scratchCodes: [],
   stats: null,
+  previewId: null,
   selectedId: null,
   showRoute: true,
   focus: null,
@@ -56,13 +63,19 @@ export const useMapStore = create<MapState>((set, get) => ({
   setMemories: (m) => set({ memories: m }),
   setScratch: (codes) => set({ scratchCodes: codes }),
   setStats: (s) => set({ stats: s }),
-  select: (id) => {
-    set({ selectedId: id });
+
+  preview: (id) => {
+    set({ previewId: id });
     if (id) {
       const m = get().memories.find((x) => x.id === id);
       if (m) set({ focus: { lat: m.lat, lng: m.lng, zoom: 12, nonce: Date.now() } });
     }
   },
+  open: (id) => {
+    const m = get().memories.find((x) => x.id === id);
+    set({ selectedId: id, previewId: id });
+    if (m) set({ focus: { lat: m.lat, lng: m.lng, zoom: 13, nonce: Date.now() } });
+  },
+  closeDetail: () => set({ selectedId: null }),
   toggleRoute: () => set((s) => ({ showRoute: !s.showRoute })),
-  focusOn: (lat, lng, zoom = 11) => set({ focus: { lat, lng, zoom, nonce: Date.now() } }),
 }));

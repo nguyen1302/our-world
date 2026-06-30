@@ -3,7 +3,7 @@ import { useMapStore } from "./mapStore";
 
 export default function OnThisDay() {
   const memories = useMapStore((s) => s.memories);
-  const select = useMapStore((s) => s.select);
+  const open = useMapStore((s) => s.open);
 
   const today = new Date();
   // Same day-of-year, but only in PAST years ("X năm trước").
@@ -24,7 +24,7 @@ export default function OnThisDay() {
       {matches.map((m) => {
         const years = today.getFullYear() - new Date(m.startAt).getFullYear();
         return (
-          <button key={m.id} className="ow-onthisday__item" onClick={() => select(m.id)}>
+          <button key={m.id} className="ow-onthisday__item" onClick={() => open(m.id)}>
             <strong>{m.title}</strong>
             <em>{years} năm trước</em>
           </button>

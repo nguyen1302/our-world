@@ -6,8 +6,8 @@ const MONTHS = ["01","02","03","04","05","06","07","08","09","10","11","12"];
 
 export default function TimelineBar() {
   const memories = useMapStore((s) => s.memories);
-  const selectedId = useMapStore((s) => s.selectedId);
-  const select = useMapStore((s) => s.select);
+  const previewId = useMapStore((s) => s.previewId);
+  const preview = useMapStore((s) => s.preview);
   const trackRef = useRef<HTMLDivElement>(null);
 
   // Sorted oldest -> newest, with a year label inserted when the year changes.
@@ -36,8 +36,8 @@ export default function TimelineBar() {
           <div className="ow-tlnode-wrap" key={m.id}>
             {showYear && <span className="ow-tlyear">{year}</span>}
             <button
-              className={`ow-tlnode ${m.id === selectedId ? "ow-tlnode--active" : ""}`}
-              onClick={() => select(m.id)}
+              className={`ow-tlnode ${m.id === previewId ? "ow-tlnode--active" : ""}`}
+              onClick={() => preview(m.id)}
               title={m.title}
             >
               <span className="ow-tlnode__dot">♥</span>

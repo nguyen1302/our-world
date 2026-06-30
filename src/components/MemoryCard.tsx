@@ -18,7 +18,7 @@ interface Detail {
 
 export default function MemoryCard({ isAdmin, onChanged }: { isAdmin: boolean; onChanged: () => void }) {
   const selectedId = useMapStore((s) => s.selectedId);
-  const select = useMapStore((s) => s.select);
+  const closeDetail = useMapStore((s) => s.closeDetail);
   const [detail, setDetail] = useState<Detail | null>(null);
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
@@ -58,13 +58,13 @@ export default function MemoryCard({ isAdmin, onChanged }: { isAdmin: boolean; o
   async function remove() {
     if (!confirm("Chuyển kỷ niệm này vào thùng rác?")) return;
     await fetch(`/api/memories/${selectedId}`, { method: "DELETE" });
-    select(null);
+    closeDetail();
     onChanged();
   }
 
   return (
     <div className="ow-card">
-      <button className="ow-card__close" onClick={() => select(null)}>
+      <button className="ow-card__close" onClick={() => closeDetail()}>
         ✕
       </button>
       {!detail ? (
