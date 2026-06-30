@@ -5,8 +5,8 @@ import { useRouter } from "next/navigation";
 import { useMapStore } from "@/components/mapStore";
 import Stats from "@/components/Stats";
 import OnThisDay from "@/components/OnThisDay";
-import Timeline from "@/components/Timeline";
-import UploadButton from "@/components/UploadButton";
+import TimelineBar from "@/components/TimelineBar";
+import TopMenu from "@/components/TopMenu";
 import MemoryCard from "@/components/MemoryCard";
 
 const WorldMap = dynamic(() => import("@/components/WorldMap"), { ssr: false });
@@ -16,8 +16,6 @@ export default function Home() {
   const setMemories = useMapStore((s) => s.setMemories);
   const setScratch = useMapStore((s) => s.setScratch);
   const setStats = useMapStore((s) => s.setStats);
-  const showRoute = useMapStore((s) => s.showRoute);
-  const toggleRoute = useMapStore((s) => s.toggleRoute);
 
   const [geo, setGeo] = useState<unknown>(null);
   const [role, setRole] = useState<"admin" | "viewer" | null>(null);
@@ -50,23 +48,17 @@ export default function Home() {
     <div className="ow-app">
       <WorldMap geo={geo} />
 
-      <div className="ow-panel">
-        <h1>
-          Our World ♥<small>Bản đồ ký ức của hai người</small>
-        </h1>
-        <Stats />
-        <OnThisDay />
-        <div className="ow-toolbar">
-          {isAdmin && <UploadButton onUploaded={refresh} />}
-          <button className="ow-ghost" onClick={toggleRoute}>
-            {showRoute ? "Ẩn hành trình" : "Hiện hành trình"}
-          </button>
-          <button className="ow-ghost" onClick={logout}>
-            Đăng xuất
-          </button>
+      <header className="ow-topbar">
+        <div className="ow-brand">
+          Our World <span>♥</span>
         </div>
-        <Timeline />
-      </div>
+        <Stats />
+        <TopMenu isAdmin={isAdmin} onUploaded={refresh} onLogout={logout} />
+      </header>
+
+      <OnThisDay />
+
+      <TimelineBar />
 
       <MemoryCard isAdmin={isAdmin} onChanged={refresh} />
     </div>

@@ -1,7 +1,7 @@
 import { sql } from "drizzle-orm";
 import { db } from "@/db";
 import { getConfig } from "./config";
-import { resolveProvinceCode } from "./provinces";
+import { resolveProvinceCode, resolveProvinceFromIso } from "./provinces";
 
 export interface GeoResult {
   country: string | null;
@@ -22,13 +22,17 @@ export function parseNominatim(json: any): GeoResult {
   const state: string | null = addr.state ?? addr.region ?? null;
   const city: string | null =
     addr.city ?? addr.town ?? addr.village ?? addr.county ?? addr.suburb ?? null;
+  // Prefer an area/locality name over a specific POI/office name for the title.
   const placeName: string | null =
-    json?.name || addr.tourism || addr.amenity || addr.neighbourhood || city || state || null;
+    addr.suburb || addr.neighbourhood || city || addr.road || json?.name || state || null;
+  // ISO code first (reliable), then fall back to matching the state/city name.
+  const provinceCode =
+    resolveProvinceFromIso(addr["ISO3166-2-lvl4"]) ?? resolveProvinceCode(state ?? city);
   return {
     country: addr.country ?? null,
     city,
     placeName,
-    provinceCode: resolveProvinceCode(state ?? city),
+    provinceCode,
   };
 }
 

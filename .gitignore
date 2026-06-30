@@ -13,3 +13,5 @@ caddy_config
 pgdata
 
 miniodata
+.playwright-mcp
+ow-*.png

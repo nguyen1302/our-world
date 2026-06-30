@@ -38,14 +38,30 @@ export function stripDiacritics(s: string): string {
     .replace(/Đ/g, "D");
 }
 
-/** Normalize a place name for matching: lowercase, no diacritics, no admin words. */
+/**
+ * Normalize a place name for matching: lowercase, no diacritics. Strips admin
+ * markers ONLY as a leading Vietnamese prefix ("Tỉnh"/"Thành phố"/"TP") or a
+ * trailing English word ("City"/"Province") — never mid-name, so "Hà Tĩnh"
+ * (whose "Tĩnh" diacritic-strips to "tinh") is preserved intact.
+ */
 export function normalizeProvince(name: string): string {
   return stripDiacritics(name)
     .toLowerCase()
-    .replace(/\b(tinh|thanh pho|tp|city|province|of)\b/g, "")
+    .replace(/^(tinh|thanh pho|tp)\s+/, "")
+    .replace(/\s+(city|province)$/, "")
     .replace(/[^a-z0-9]+/g, " ")
     .trim()
     .replace(/\s+/g, " ");
+}
+
+// ISO 3166-2:VN code -> province slug (derived from public/vn-provinces.geojson,
+// so codes always match the Scratch Map polygons). Authoritative when Nominatim
+// returns an ISO code, which is more reliable than the free-text state field.
+const ISO_TO_CODE: Record<string, string> = {"VN-44":"an-giang","VN-43":"con-dao","VN-54":"bac-giang","VN-53":"bac-kan","VN-55":"bac-lieu","VN-56":"bac-ninh","VN-50":"ben-tre","VN-31":"binh-dinh","VN-57":"binh-duong","VN-58":"binh-phuoc","VN-40":"binh-thuan","VN-59":"ca-mau","VN-CT":"can-tho","VN-04":"cao-bang","VN-DN":"da-nang","VN-33":"dak-lak","VN-72":"dak-nong","VN-71":"dien-bien","VN-39":"dong-nai","VN-45":"dong-thap","VN-30":"gia-lai","VN-03":"ha-giang","VN-63":"ha-nam","VN-HN":"ha-noi","VN-23":"ha-tinh","VN-61":"hai-duong","VN-HP":"hai-phong","VN-73":"hau-giang","VN-SG":"ho-chi-minh","VN-14":"hoa-binh","VN-66":"hung-yen","VN-34":"khanh-hoa","VN-47":"kien-giang","VN-28":"kon-tum","VN-01":"lai-chau","VN-35":"lam-dong","VN-09":"lang-son","VN-02":"lao-cai","VN-41":"long-an","VN-67":"nam-dinh","VN-22":"nghe-an","VN-18":"ninh-binh","VN-36":"ninh-thuan","VN-68":"phu-tho","VN-32":"phu-yen","VN-24":"quang-binh","VN-27":"quang-nam","VN-29":"quang-ngai","VN-13":"quang-ninh","VN-25":"quang-tri","VN-52":"soc-trang","VN-05":"son-la","VN-37":"tay-ninh","VN-20":"thai-binh","VN-69":"thai-nguyen","VN-21":"thanh-hoa","VN-26":"thua-thien-hue","VN-46":"tien-giang","VN-51":"tra-vinh","VN-07":"tuyen-quang","VN-49":"vinh-long","VN-70":"vinh-phuc","VN-06":"yen-bai"};
+
+export function resolveProvinceFromIso(iso: string | null | undefined): string | null {
+  if (!iso) return null;
+  return ISO_TO_CODE[iso.toUpperCase()] ?? null;
 }
 
 export function slugify(name: string): string {
