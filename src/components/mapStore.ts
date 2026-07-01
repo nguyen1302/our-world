@@ -14,6 +14,36 @@ export interface MemoryMarker {
   photoCount: number;
 }
 
+export interface PlacePhoto {
+  id: string;
+  thumbUrl: string | null;
+}
+export interface Place {
+  id: string;
+  title: string;
+  description: string | null;
+  placeName: string | null;
+  city: string | null;
+  country: string | null;
+  lat: number;
+  lng: number;
+  startAt: string;
+  endAt: string;
+  photos: PlacePhoto[];
+}
+export interface TripDetail {
+  trip: {
+    id: string;
+    title: string;
+    description: string | null;
+    city: string | null;
+    country: string | null;
+    startAt: string;
+    endAt: string;
+  };
+  places: Place[];
+}
+
 export interface Stats {
   memories: number;
   photos: number;
@@ -22,63 +52,101 @@ export interface Stats {
   countries: number;
 }
 
-interface FocusTarget {
+interface FocusPoint {
   lat: number;
   lng: number;
   zoom: number;
   nonce: number;
 }
+interface FocusBounds {
+  points: [number, number][];
+  nonce: number;
+}
 
 interface MapState {
-  memories: MemoryMarker[];
+  memories: MemoryMarker[]; // trips (level 1)
   scratchCodes: string[];
   stats: Stats | null;
-  /** Highlighted on the map + preview bubble shown (e.g. from the timeline). */
-  previewId: string | null;
-  /** Opened in the detail card (only by clicking the map marker). */
-  selectedId: string | null;
   showRoute: boolean;
-  focus: FocusTarget | null;
+
+  focusedTripId: string | null; // level 2 = inside this trip
+  tripDetail: TripDetail | null;
+  selectedPlaceId: string | null;
+  pendingEnterTripId: string | null; // request to enter a trip (page fetches detail)
+
+  focusPoint: FocusPoint | null;
+  focusBounds: FocusBounds | null;
 
   setMemories: (m: MemoryMarker[]) => void;
   setScratch: (codes: string[]) => void;
   setStats: (s: Stats) => void;
-  /** Timeline: fly to the marker and preview it, but do NOT open detail. */
-  preview: (id: string | null) => void;
-  /** Map marker: open the detail card. */
-  open: (id: string) => void;
-  closeDetail: () => void;
-  setSelected: (id: string | null) => void;
   toggleRoute: () => void;
+
+  requestEnterTrip: (id: string) => void;
+  enterTrip: (detail: TripDetail) => void;
+  exitTrip: () => void;
+  selectPlace: (id: string) => void;
+  backToTrip: () => void;
+  updatePlaceLocal: (id: string, patch: Partial<Place>) => void;
+  updateTripLocal: (patch: Partial<TripDetail["trip"]>) => void;
 }
+
+let _n = 1;
+const nonce = () => _n++;
 
 export const useMapStore = create<MapState>((set, get) => ({
   memories: [],
   scratchCodes: [],
   stats: null,
-  previewId: null,
-  selectedId: null,
   showRoute: true,
-  focus: null,
+  focusedTripId: null,
+  tripDetail: null,
+  selectedPlaceId: null,
+  pendingEnterTripId: null,
+  focusPoint: null,
+  focusBounds: null,
 
   setMemories: (m) => set({ memories: m }),
   setScratch: (codes) => set({ scratchCodes: codes }),
   setStats: (s) => set({ stats: s }),
-
-  preview: (id) => {
-    set({ previewId: id });
-    if (id) {
-      const m = get().memories.find((x) => x.id === id);
-      if (m) set({ focus: { lat: m.lat, lng: m.lng, zoom: 11, nonce: Date.now() } });
-    }
-  },
-  open: (id) => {
-    const m = get().memories.find((x) => x.id === id);
-    set({ selectedId: id, previewId: id });
-    if (m) set({ focus: { lat: m.lat, lng: m.lng, zoom: 12, nonce: Date.now() } });
-  },
-  closeDetail: () => set({ selectedId: null }),
-  /** Show the detail card without moving the camera (journey controls the map). */
-  setSelected: (id) => set({ selectedId: id }),
   toggleRoute: () => set((s) => ({ showRoute: !s.showRoute })),
+
+  requestEnterTrip: (id) => set({ pendingEnterTripId: id }),
+  enterTrip: (detail) => {
+    set({
+      focusedTripId: detail.trip.id,
+      tripDetail: detail,
+      selectedPlaceId: null,
+      pendingEnterTripId: null,
+      focusBounds: { points: detail.places.map((p) => [p.lat, p.lng]), nonce: nonce() },
+    });
+  },
+  exitTrip: () => {
+    set({
+      focusedTripId: null,
+      tripDetail: null,
+      selectedPlaceId: null,
+      focusBounds: { points: get().memories.map((m) => [m.lat, m.lng]), nonce: nonce() },
+    });
+  },
+  selectPlace: (id) => {
+    const p = get().tripDetail?.places.find((x) => x.id === id);
+    set({ selectedPlaceId: id });
+    if (p) set({ focusPoint: { lat: p.lat, lng: p.lng, zoom: 14, nonce: nonce() } });
+  },
+  backToTrip: () => {
+    const d = get().tripDetail;
+    set({
+      selectedPlaceId: null,
+      focusBounds: d ? { points: d.places.map((p) => [p.lat, p.lng]), nonce: nonce() } : null,
+    });
+  },
+  updatePlaceLocal: (id, patch) =>
+    set((s) =>
+      s.tripDetail
+        ? { tripDetail: { ...s.tripDetail, places: s.tripDetail.places.map((p) => (p.id === id ? { ...p, ...patch } : p)) } }
+        : {},
+    ),
+  updateTripLocal: (patch) =>
+    set((s) => (s.tripDetail ? { tripDetail: { ...s.tripDetail, trip: { ...s.tripDetail.trip, ...patch } } } : {})),
 }));

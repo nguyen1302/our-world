@@ -11,8 +11,7 @@ export default function JourneyControls() {
   const stops = useJourney((s) => s.stops);
   const next = useJourney((s) => s.next);
   const exit = useJourney((s) => s.exit);
-  const setActivePlace = useJourney((s) => s.setActivePlace);
-  const closeDetail = useMapStore((s) => s.closeDetail);
+  const backToTrip = useMapStore((s) => s.backToTrip);
   const [muted, setMuted] = useState(isMusicMuted());
 
   useEffect(() => {
@@ -32,7 +31,7 @@ export default function JourneyControls() {
 
   return (
     <div className="ow-journey">
-      <div className="ow-journey__exit" onClick={() => { exit(); setActivePlace(null); closeDetail(); }}>
+      <div className="ow-journey__exit" onClick={() => { exit(); backToTrip(); }}>
         <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M6 6l12 12M18 6L6 18" /></svg>
         Thoát
       </div>

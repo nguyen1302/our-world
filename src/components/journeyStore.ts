@@ -7,7 +7,6 @@ export interface Faces {
 }
 export interface Stop {
   id: string;
-  tripId: string | null;
   lat: number;
   lng: number;
   title: string;

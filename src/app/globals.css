@@ -106,6 +106,7 @@ body { font-family: var(--sans); -webkit-font-smoothing: antialiased; text-rende
 .ow-tl-range { color: #9aa69b; font-size: 12px; }
 .ow-tl-spacer { flex: 1; }
 .ow-tl-play { display: flex; align-items: center; gap: 8px; cursor: pointer; padding: 8px 15px; border-radius: 12px; font-size: 13px; font-weight: 600; color: #1a1310; background: linear-gradient(135deg, var(--gold), var(--rose)); box-shadow: 0 6px 18px rgba(233,184,114,.3); border: none; font-family: var(--sans); }
+.ow-tl-back { width: 30px; height: 30px; display: flex; align-items: center; justify-content: center; border-radius: 9px; border: 1px solid var(--line); background: rgba(240,235,220,.05); color: var(--gold); cursor: pointer; }
 .ow-tl-zoom { display: flex; align-items: center; gap: 2px; border: 1px solid var(--line); border-radius: 11px; overflow: hidden; background: rgba(240,235,220,.04); }
 .ow-tl-zoom button { width: 34px; height: 30px; display: flex; align-items: center; justify-content: center; cursor: pointer; color: #d8cec0; background: none; border: none; }
 .ow-tl-zoom span { width: 1px; height: 18px; background: var(--line); }
@@ -146,8 +147,11 @@ body { font-family: var(--sans); -webkit-font-smoothing: antialiased; text-rende
 .ow-gallery div { position: relative; padding-bottom: 100%; border-radius: 9px; overflow: hidden; cursor: zoom-in; background: rgba(240,235,220,.06); }
 .ow-gallery img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
 .ow-card__ride { display: flex; align-items: center; justify-content: center; gap: 8px; width: 100%; margin-top: 16px; padding: 11px; border: none; border-radius: 12px; cursor: pointer; font-weight: 600; font-family: var(--sans); color: #1a1310; background: linear-gradient(135deg, var(--gold), var(--rose)); box-shadow: 0 6px 18px rgba(233,184,114,.28); }
-.ow-place { border-radius: 12px; padding: 4px 6px; margin: 0 -6px; transition: background .3s, box-shadow .3s; }
-.ow-place--active { background: rgba(233,184,114,.1); box-shadow: inset 0 0 0 1px rgba(233,184,114,.4); }
+.ow-placechips { display: flex; gap: 8px; overflow-x: auto; padding: 4px 0 2px; margin-bottom: 4px; }
+.ow-placechip { flex: none; display: flex; flex-direction: column; align-items: center; gap: 5px; width: 76px; background: none; border: none; cursor: pointer; padding: 0; }
+.ow-placechip img { width: 62px; height: 62px; border-radius: 12px; object-fit: cover; border: 1px solid var(--line); background: rgba(240,235,220,.06); }
+.ow-placechip span { font-size: 10.5px; color: var(--muted); max-width: 76px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ow-placechip:hover span { color: var(--cream); }
 .ow-card__actions { display: flex; gap: 8px; margin-top: 14px; }
 .ow-card__actions button { background: linear-gradient(135deg, var(--gold), var(--rose)); color: #1a1310; border: none; border-radius: 10px; padding: 9px 16px; cursor: pointer; font-weight: 600; font-family: var(--sans); }
 .ow-card__actions .ow-danger { background: none; color: var(--rose); border: 1px solid rgba(217,134,149,.5); }

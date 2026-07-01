@@ -22,6 +22,8 @@ export default function Home() {
   const setStats = useMapStore((s) => s.setStats);
   const showRoute = useMapStore((s) => s.showRoute);
   const toggleRoute = useMapStore((s) => s.toggleRoute);
+  const pendingEnterTripId = useMapStore((s) => s.pendingEnterTripId);
+  const enterTrip = useMapStore((s) => s.enterTrip);
 
   const [role, setRole] = useState<"admin" | "viewer" | null>(null);
   const [showFaces, setShowFaces] = useState(false);
@@ -43,6 +45,15 @@ export default function Home() {
     fetch("/api/music").then((r) => (r.ok ? r.json() : null)).then((d) => setMusicTrack(d?.activeUrl ?? null));
     refresh();
   }, [refresh]);
+
+  // when a trip marker/bead is clicked, fetch its places and drill in
+  useEffect(() => {
+    if (!pendingEnterTripId) return;
+    fetch(`/api/memories/${pendingEnterTripId}`)
+      .then((r) => r.json())
+      .then((d) => enterTrip(d))
+      .catch(() => {});
+  }, [pendingEnterTripId, enterTrip]);
 
   async function logout() {
     await fetch("/api/auth/logout", { method: "POST" });

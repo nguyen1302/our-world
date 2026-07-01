@@ -40,8 +40,10 @@ export async function GET(_req: NextRequest, { params }: { params: { id: string 
       return {
         id: p.id,
         title: p.title,
+        description: p.description,
         placeName: p.placeName,
         city: p.city,
+        country: p.country,
         lat: p.lat,
         lng: p.lng,
         startAt: p.startAt,

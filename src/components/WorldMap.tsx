@@ -5,7 +5,7 @@ import L from "leaflet";
 import "leaflet/dist/leaflet.css";
 import "leaflet.markercluster/dist/MarkerCluster.css";
 import "leaflet.markercluster";
-import { useMapStore, type MemoryMarker } from "./mapStore";
+import { useMapStore } from "./mapStore";
 import { useJourney, vehicleForDistance, haversineKm } from "./journeyStore";
 import { vehicleSvg, type VehicleType } from "./vehicles";
 
@@ -14,21 +14,43 @@ const VN_ZOOM = 6;
 const GOLD = "#e9b872";
 const ROSE = "#d98695";
 
-function markerHtml(m: MemoryMarker, active: boolean): string {
-  const glow = active
-    ? `0 6px 20px rgba(0,0,0,.6),0 0 24px ${GOLD}`
-    : `0 4px 14px rgba(0,0,0,.6),0 0 16px ${GOLD}66`;
+interface Marker {
+  id: string;
+  lat: number;
+  lng: number;
+  cover: string | null;
+}
+
+function markerHtml(cover: string | null, active: boolean): string {
+  const glow = active ? `0 6px 20px rgba(0,0,0,.6),0 0 24px ${GOLD}` : `0 4px 14px rgba(0,0,0,.6),0 0 16px ${GOLD}66`;
   return (
     `<div class="wwh-mk"><div class="wwh-mk-inner" style="width:44px;height:44px;border-radius:50%;padding:2px;` +
     `background:linear-gradient(135deg,${GOLD},${ROSE});box-shadow:${glow};transform:scale(${active ? 1.32 : 1})">` +
-    `<img src="${m.coverThumbUrl ?? ""}" style="width:100%;height:100%;object-fit:cover;border-radius:50%;display:block;border:2px solid #11160F;"></div></div>`
+    `<img src="${cover ?? ""}" style="width:100%;height:100%;object-fit:cover;border-radius:50%;display:block;border:2px solid #11160F;"></div></div>`
   );
 }
 
-function ClusterLayer({ memories }: { memories: MemoryMarker[] }) {
+function padFor(map: L.Map) {
+  const sz = map.getSize();
+  const padX = Math.round(sz.x * 0.22);
+  const padY = Math.round(sz.y * 0.22);
+  const leftPad = sz.x < 768 ? padX : Math.max(padX, 430);
+  return { padX, padY, leftPad };
+}
+
+function MarkersLayer() {
   const map = useMap();
-  const open = useMapStore((s) => s.open);
-  const selectedId = useMapStore((s) => s.selectedId);
+  const memories = useMapStore((s) => s.memories);
+  const focusedTripId = useMapStore((s) => s.focusedTripId);
+  const tripDetail = useMapStore((s) => s.tripDetail);
+  const selectedPlaceId = useMapStore((s) => s.selectedPlaceId);
+  const requestEnterTrip = useMapStore((s) => s.requestEnterTrip);
+  const selectPlace = useMapStore((s) => s.selectPlace);
+
+  const level2 = !!focusedTripId && !!tripDetail;
+  const markers: Marker[] = level2
+    ? tripDetail!.places.map((p) => ({ id: p.id, lat: p.lat, lng: p.lng, cover: p.photos[0]?.thumbUrl ?? null }))
+    : memories.map((m) => ({ id: m.id, lat: m.lat, lng: m.lng, cover: m.coverThumbUrl }));
 
   useEffect(() => {
     const group = (L as any).markerClusterGroup({
@@ -44,13 +66,15 @@ function ClusterLayer({ memories }: { memories: MemoryMarker[] }) {
             `box-shadow:0 0 0 6px ${GOLD}29,0 8px 24px rgba(0,0,0,0.55);">${c.getChildCount()}</div>`,
         }),
     });
-    for (const m of memories) {
+    for (const m of markers) {
+      const active = level2 && m.id === selectedPlaceId;
       const marker = L.marker([m.lat, m.lng], {
-        icon: L.divIcon({ className: "", iconSize: [44, 44], iconAnchor: [22, 22], html: markerHtml(m, m.id === selectedId) }),
+        icon: L.divIcon({ className: "", iconSize: [44, 44], iconAnchor: [22, 22], html: markerHtml(m.cover, active) }),
       });
       marker.on("click", (e: any) => {
         L.DomEvent.stopPropagation(e);
-        open(m.id);
+        if (level2) selectPlace(m.id);
+        else requestEnterTrip(m.id);
       });
       group.addLayer(marker);
     }
@@ -58,17 +82,36 @@ function ClusterLayer({ memories }: { memories: MemoryMarker[] }) {
     return () => {
       map.removeLayer(group);
     };
-  }, [map, memories, selectedId, open]);
+  }, [map, memories, tripDetail, focusedTripId, selectedPlaceId, level2, requestEnterTrip, selectPlace]);
 
   return null;
 }
 
 function FocusController() {
   const map = useMap();
-  const focus = useMapStore((s) => s.focus);
+  const focusPoint = useMapStore((s) => s.focusPoint);
+  const focusBounds = useMapStore((s) => s.focusBounds);
+
   useEffect(() => {
-    if (focus) map.flyTo([focus.lat, focus.lng], focus.zoom, { duration: 1.2, easeLinearity: 0.22 });
-  }, [map, focus]);
+    if (focusPoint) map.flyTo([focusPoint.lat, focusPoint.lng], focusPoint.zoom, { duration: 1.1, easeLinearity: 0.25 });
+  }, [map, focusPoint]);
+
+  useEffect(() => {
+    if (!focusBounds) return;
+    if (focusBounds.points.length === 0) {
+      map.flyTo(VN_CENTER, VN_ZOOM, { duration: 1.1 });
+      return;
+    }
+    const { padX, padY, leftPad } = padFor(map);
+    map.flyToBounds(L.latLngBounds(focusBounds.points), {
+      paddingTopLeft: [leftPad, Math.max(padY, 90)],
+      paddingBottomRight: [padX, Math.max(padY, 190)],
+      maxZoom: 15,
+      duration: 1.2,
+      easeLinearity: 0.25,
+    });
+  }, [map, focusBounds]);
+
   return null;
 }
 
@@ -81,7 +124,7 @@ function segVehicle(stops: { lat: number; lng: number }[], i: number): VehicleTy
 
 function JourneyController() {
   const map = useMap();
-  const setSelected = useMapStore((s) => s.setSelected);
+  const selectPlace = useMapStore((s) => s.selectPlace);
   const playing = useJourney((s) => s.playing);
   const stops = useJourney((s) => s.stops);
   const phase = useJourney((s) => s.phase);
@@ -89,7 +132,6 @@ function JourneyController() {
   const faces = useJourney((s) => s.faces);
   const setProgress = useJourney((s) => s.setProgress);
   const arrive = useJourney((s) => s.arrive);
-  const setActivePlace = useJourney((s) => s.setActivePlace);
 
   const markerRef = useRef<L.Marker | null>(null);
   const fxRef = useRef<HTMLDivElement | null>(null);
@@ -97,7 +139,6 @@ function JourneyController() {
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const flipRef = useRef(1);
 
-  // FX layer inside the map container
   useEffect(() => {
     const c = map.getContainer();
     const fx = document.createElement("div");
@@ -115,9 +156,8 @@ function JourneyController() {
     const svg = vehicleSvg(type, faces, { id: "mapv" });
     const html = `<div class="ow-bob" style="width:100%;height:100%;transform:scaleX(${flipRef.current})">${svg}</div>`;
     const icon = L.divIcon({ className: "ow-veh", html, iconSize: [78, 50], iconAnchor: [39, 28] });
-    if (!markerRef.current) {
-      markerRef.current = L.marker([lat, lng], { icon, zIndexOffset: 1000, interactive: false }).addTo(map);
-    } else {
+    if (!markerRef.current) markerRef.current = L.marker([lat, lng], { icon, zIndexOffset: 1000, interactive: false }).addTo(map);
+    else {
       markerRef.current.setIcon(icon);
       markerRef.current.setLatLng([lat, lng]);
     }
@@ -160,16 +200,12 @@ function JourneyController() {
     if (phase === "paused") {
       const s = stops[index];
       if (!s) return;
-      // open the trip this place belongs to (only when it changes), highlight the place
-      const curTrip = useMapStore.getState().selectedId;
-      if (s.tripId && s.tripId !== curTrip) setSelected(s.tripId);
-      setActivePlace(s.id);
+      selectPlace(s.id);
       map.flyTo([s.lat, s.lng], 14, { duration: 1.3, easeLinearity: 0.2 });
       place(s.lat, s.lng, segVehicle(stops, Math.max(0, index - 1)), false);
       return;
     }
 
-    setActivePlace(null);
     const from = stops[index];
     const to = stops[index + 1];
     if (!to) return;
@@ -177,12 +213,7 @@ function JourneyController() {
     const type = vehicleForDistance(km);
     const flip = to.lng < from.lng;
 
-    // Frame just this segment (~half the free viewport) — never zoom out further
-    // than needed. Short motorbike hops stay at street level (maxZoom 14).
-    const sz = map.getSize();
-    const padX = Math.round(sz.x * 0.22);
-    const padY = Math.round(sz.y * 0.22);
-    const leftPad = sz.x < 768 ? padX : Math.max(padX, 430); // keep clear of the card
+    const { padX, padY, leftPad } = padFor(map);
     map.flyToBounds(L.latLngBounds([from.lat, from.lng], [to.lat, to.lng]), {
       paddingTopLeft: [leftPad, Math.max(padY, 90)],
       paddingBottomRight: [padX, Math.max(padY, 190)],
@@ -193,7 +224,7 @@ function JourneyController() {
     place(from.lat, from.lng, type, flip);
 
     timerRef.current = setTimeout(() => {
-      const dur = 2600 + Math.min(km * 3, 2400);
+      const dur = 2400 + Math.min(km * 3, 2200);
       const startTs = performance.now();
       let lastSpawn = 0;
       const ease = (t: number) => (t < 0.5 ? 2 * t * t : 1 - Math.pow(-2 * t + 2, 2) / 2);
@@ -212,7 +243,7 @@ function JourneyController() {
         else arrive();
       };
       rafRef.current = requestAnimationFrame(step);
-    }, 1650);
+    }, 1600);
 
     return cancel;
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -223,25 +254,19 @@ function JourneyController() {
 
 export default function WorldMap() {
   const memories = useMapStore((s) => s.memories);
+  const focusedTripId = useMapStore((s) => s.focusedTripId);
+  const tripDetail = useMapStore((s) => s.tripDetail);
   const showRoute = useMapStore((s) => s.showRoute);
 
-  const routePoints = useMemo(
-    () =>
-      [...memories]
-        .sort((a, b) => a.startAt.localeCompare(b.startAt))
-        .map((m) => [m.lat, m.lng] as [number, number]),
-    [memories],
-  );
+  const routePoints = useMemo(() => {
+    const src = focusedTripId && tripDetail ? tripDetail.places : memories;
+    return [...src]
+      .sort((a, b) => a.startAt.localeCompare(b.startAt))
+      .map((m) => [m.lat, m.lng] as [number, number]);
+  }, [memories, focusedTripId, tripDetail]);
 
   return (
-    <MapContainer
-      center={VN_CENTER}
-      zoom={VN_ZOOM}
-      className="ow-map"
-      scrollWheelZoom
-      zoomControl={false}
-      preferCanvas
-    >
+    <MapContainer center={VN_CENTER} zoom={VN_ZOOM} className="ow-map" scrollWheelZoom zoomControl={false} preferCanvas>
       <TileLayer
         attribution="Tiles &copy; Esri, Maxar, Earthstar Geographics"
         url="https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}"
@@ -259,7 +284,7 @@ export default function WorldMap() {
       {showRoute && routePoints.length > 1 ? (
         <Polyline positions={routePoints} pathOptions={{ color: GOLD, weight: 2.4, opacity: 0.65, dashArray: "1 9", lineCap: "round" }} />
       ) : null}
-      <ClusterLayer memories={memories} />
+      <MarkersLayer />
       <FocusController />
       <JourneyController />
     </MapContainer>

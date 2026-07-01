@@ -3,7 +3,7 @@ import { useMapStore } from "./mapStore";
 
 export default function OnThisDay() {
   const memories = useMapStore((s) => s.memories);
-  const open = useMapStore((s) => s.open);
+  const requestEnterTrip = useMapStore((s) => s.requestEnterTrip);
 
   const today = new Date();
   const mmdd = `${String(today.getMonth() + 1).padStart(2, "0")}-${String(today.getDate()).padStart(2, "0")}`;
@@ -16,7 +16,7 @@ export default function OnThisDay() {
   const label = `${years} năm trước · ${match.city ?? ""}`;
 
   return (
-    <div className="ow-otd" onClick={() => open(match.id)}>
+    <div className="ow-otd" onClick={() => requestEnterTrip(match.id)}>
       <div className="ow-otd__dot" />
       <div>
         <div className="ow-otd__k">Ngày này</div>

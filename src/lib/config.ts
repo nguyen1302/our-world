@@ -83,7 +83,7 @@ export function getConfig(env: NodeJS.ProcessEnv = process.env): AppConfig {
       endpoint: env.S3_ENDPOINT || undefined,
       forcePathStyle: env.S3_FORCE_PATH_STYLE === "true",
     },
-    clusterDistanceKm: num("CLUSTER_DISTANCE_KM", env.CLUSTER_DISTANCE_KM, 1.5),
+    clusterDistanceKm: num("CLUSTER_DISTANCE_KM", env.CLUSTER_DISTANCE_KM, 5),
     clusterTimeGapHours: num("CLUSTER_TIME_GAP_HOURS", env.CLUSTER_TIME_GAP_HOURS, 6),
     tripDistanceKm: num("TRIP_DISTANCE_KM", env.TRIP_DISTANCE_KM, 80),
     tripGapHours: num("TRIP_GAP_HOURS", env.TRIP_GAP_HOURS, 36),
