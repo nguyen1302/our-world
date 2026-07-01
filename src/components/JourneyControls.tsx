@@ -6,12 +6,14 @@ import { startMusic, stopMusic, setMusicMuted, isMusicMuted } from "./journeyMus
 
 export default function JourneyControls() {
   const playing = useJourney((s) => s.playing);
+  const mode = useJourney((s) => s.mode);
   const phase = useJourney((s) => s.phase);
   const index = useJourney((s) => s.index);
   const stops = useJourney((s) => s.stops);
   const next = useJourney((s) => s.next);
   const exit = useJourney((s) => s.exit);
   const backToTrip = useMapStore((s) => s.backToTrip);
+  const exitTrip = useMapStore((s) => s.exitTrip);
   const [muted, setMuted] = useState(isMusicMuted());
 
   useEffect(() => {
@@ -27,11 +29,18 @@ export default function JourneyControls() {
   const cur = stops[index];
   const nextStop = stops[index + 1];
   const status = paused ? cur?.title ?? "" : `Đang đến ${nextStop?.title ?? ""}`;
-  const stepLabel = "Điểm";
+  const stepLabel = mode === "trips" ? "Chuyến" : "Điểm";
+
+  // small journey ends -> back to the big trip detail; big journey ends -> overview
+  function finish() {
+    exit();
+    if (mode === "places") backToTrip();
+    else exitTrip();
+  }
 
   return (
     <div className="ow-journey">
-      <div className="ow-journey__exit" onClick={() => { exit(); backToTrip(); }}>
+      <div className="ow-journey__exit" onClick={finish}>
         <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M6 6l12 12M18 6L6 18" /></svg>
         Thoát
       </div>
@@ -43,7 +52,7 @@ export default function JourneyControls() {
         <div className="ow-journey__status">{status}</div>
       </div>
       {paused ? (
-        <div className="ow-journey__next" onClick={() => next()}>
+        <div className="ow-journey__next" onClick={last ? finish : () => next()}>
           <span>{last ? "Kết thúc" : "Tiếp"}</span>
           <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.1" strokeLinecap="round" strokeLinejoin="round"><path d="M5 12h14M13 6l6 6-6 6" /></svg>
         </div>

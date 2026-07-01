@@ -20,6 +20,7 @@ export default function TimelineBar() {
   const requestEnterTrip = useMapStore((s) => s.requestEnterTrip);
   const selectPlace = useMapStore((s) => s.selectPlace);
   const exitTrip = useMapStore((s) => s.exitTrip);
+  const cacheTrips = useMapStore((s) => s.cacheTrips);
   const trackRef = useRef<HTMLDivElement>(null);
   const [zoom, setZoom] = useState(1);
 
@@ -70,12 +71,23 @@ export default function TimelineBar() {
     if (active) el.scrollLeft = active.offsetLeft - el.clientWidth / 2 + active.clientWidth / 2;
   }, [activeId, zoom, level2]);
 
+  // small journey: ride the places inside the current trip
   function ridePlaces() {
     if (!tripDetail) return;
     const stops = tripDetail.places
       .filter((p) => typeof p.lat === "number")
-      .map((p) => ({ id: p.id, lat: p.lat, lng: p.lng, title: p.placeName || p.title }));
-    if (stops.length > 1) startJourney(stops);
+      .map((p) => ({ id: p.id, tripId: tripDetail.trip.id, lat: p.lat, lng: p.lng, title: p.placeName || p.title }));
+    if (stops.length > 1) startJourney(stops, "places");
+  }
+
+  // big journey: ride between trips (prefetch each trip's places for its detail card)
+  async function playBigTrips() {
+    const details = await Promise.all(memories.map((m) => fetch(`/api/memories/${m.id}`).then((r) => r.json())));
+    cacheTrips(details);
+    const stops = [...memories]
+      .sort((a, b) => a.startAt.localeCompare(b.startAt))
+      .map((m) => ({ id: m.id, tripId: null, lat: m.lat, lng: m.lng, title: m.title }));
+    if (stops.length > 1) startJourney(stops, "trips");
   }
 
   const title = level2 ? tripDetail!.trip.title : "Dòng thời gian";
@@ -99,10 +111,16 @@ export default function TimelineBar() {
         {beads.length > 0 && <span className="ow-tl-sep">·</span>}
         <span className="ow-tl-range">{rangeLabel}</span>
         <div className="ow-tl-spacer" />
+        {!level2 && beads.length > 1 && !playing && (
+          <button className="ow-tl-play" onClick={playBigTrips}>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M7 5v14l12-7z" /></svg>
+            Chuyến đi
+          </button>
+        )}
         {level2 && beads.length > 1 && !playing && (
           <button className="ow-tl-play" onClick={ridePlaces}>
             <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M7 5v14l12-7z" /></svg>
-            Hành trình
+            Hành trình trong chuyến
           </button>
         )}
         <div className="ow-tl-zoom">

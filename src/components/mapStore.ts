@@ -73,6 +73,7 @@ interface MapState {
   tripDetail: TripDetail | null;
   selectedPlaceId: string | null;
   pendingEnterTripId: string | null; // request to enter a trip (page fetches detail)
+  tripCache: Record<string, TripDetail>; // prefetched details for the grand journey
 
   focusPoint: FocusPoint | null;
   focusBounds: FocusBounds | null;
@@ -84,6 +85,8 @@ interface MapState {
 
   requestEnterTrip: (id: string) => void;
   enterTrip: (detail: TripDetail) => void;
+  cacheTrips: (details: TripDetail[]) => void;
+  enterTripById: (id: string) => void; // silent (no camera change) — for the journey
   exitTrip: () => void;
   selectPlace: (id: string) => void;
   backToTrip: () => void;
@@ -103,6 +106,7 @@ export const useMapStore = create<MapState>((set, get) => ({
   tripDetail: null,
   selectedPlaceId: null,
   pendingEnterTripId: null,
+  tripCache: {},
   focusPoint: null,
   focusBounds: null,
 
@@ -120,6 +124,16 @@ export const useMapStore = create<MapState>((set, get) => ({
       pendingEnterTripId: null,
       focusBounds: { points: detail.places.map((p) => [p.lat, p.lng]), nonce: nonce() },
     });
+  },
+  cacheTrips: (details) =>
+    set((s) => {
+      const cache = { ...s.tripCache };
+      for (const d of details) cache[d.trip.id] = d;
+      return { tripCache: cache };
+    }),
+  enterTripById: (id) => {
+    const d = get().tripCache[id];
+    if (d) set({ focusedTripId: id, tripDetail: d, selectedPlaceId: null });
   },
   exitTrip: () => {
     set({

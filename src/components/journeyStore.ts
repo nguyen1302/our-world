@@ -7,6 +7,7 @@ export interface Faces {
 }
 export interface Stop {
   id: string;
+  tripId?: string | null;
   lat: number;
   lng: number;
   title: string;
@@ -21,17 +22,19 @@ function loadFaces(): Faces {
   return { a: null, b: null };
 }
 
+export type JourneyMode = "trips" | "places";
+
 interface JourneyState {
   playing: boolean;
+  mode: JourneyMode;
   stops: Stop[];
   index: number;
   phase: "paused" | "moving";
   progress: number;
   faces: Faces;
-  /** The place currently being shown (for the card to scroll/highlight). */
   activePlaceId: string | null;
 
-  start: (stops: Stop[]) => void;
+  start: (stops: Stop[], mode: JourneyMode) => void;
   exit: () => void;
   next: () => void;
   setProgress: (p: number) => void;
@@ -42,6 +45,7 @@ interface JourneyState {
 
 export const useJourney = create<JourneyState>((set, get) => ({
   playing: false,
+  mode: "places",
   stops: [],
   index: 0,
   phase: "paused",
@@ -49,7 +53,7 @@ export const useJourney = create<JourneyState>((set, get) => ({
   faces: loadFaces(),
   activePlaceId: null,
 
-  start: (stops) => set({ playing: true, stops, index: 0, phase: "paused", progress: 0, activePlaceId: null }),
+  start: (stops, mode) => set({ playing: true, mode, stops, index: 0, phase: "paused", progress: 0, activePlaceId: null }),
   exit: () => set({ playing: false, phase: "paused", progress: 0, index: 0, activePlaceId: null }),
   next: () => {
     const { index, stops } = get();

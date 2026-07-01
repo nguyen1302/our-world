@@ -110,8 +110,8 @@ export default function MemoryCard({ isAdmin, onChanged }: { isAdmin: boolean; o
   function rideTrip() {
     const stops = tripDetail!.places
       .filter((p) => typeof p.lat === "number")
-      .map((p) => ({ id: p.id, lat: p.lat, lng: p.lng, title: p.placeName || p.title }));
-    if (stops.length > 1) startJourney(stops);
+      .map((p) => ({ id: p.id, tripId: tripDetail!.trip.id, lat: p.lat, lng: p.lng, title: p.placeName || p.title }));
+    if (stops.length > 1) startJourney(stops, "places");
   }
 
   // ---- Place card (level 2 detail) ----

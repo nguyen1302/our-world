@@ -125,7 +125,9 @@ function segVehicle(stops: { lat: number; lng: number }[], i: number): VehicleTy
 function JourneyController() {
   const map = useMap();
   const selectPlace = useMapStore((s) => s.selectPlace);
+  const enterTripById = useMapStore((s) => s.enterTripById);
   const playing = useJourney((s) => s.playing);
+  const mode = useJourney((s) => s.mode);
   const stops = useJourney((s) => s.stops);
   const phase = useJourney((s) => s.phase);
   const index = useJourney((s) => s.index);
@@ -200,8 +202,15 @@ function JourneyController() {
     if (phase === "paused") {
       const s = stops[index];
       if (!s) return;
-      selectPlace(s.id);
-      map.flyTo([s.lat, s.lng], 14, { duration: 1.3, easeLinearity: 0.2 });
+      if (mode === "trips") {
+        // big journey: stop at each trip and show its detail card
+        enterTripById(s.id);
+        map.flyTo([s.lat, s.lng], 11, { duration: 1.3, easeLinearity: 0.2 });
+      } else {
+        // small journey: stop at each place within the current trip
+        selectPlace(s.id);
+        map.flyTo([s.lat, s.lng], 14, { duration: 1.3, easeLinearity: 0.2 });
+      }
       place(s.lat, s.lng, segVehicle(stops, Math.max(0, index - 1)), false);
       return;
     }
@@ -247,7 +256,7 @@ function JourneyController() {
 
     return cancel;
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [playing, phase, index, stops, faces, map]);
+  }, [playing, phase, index, stops, mode, faces, map]);
 
   return null;
 }
