@@ -1,6 +1,6 @@
 "use client";
 import { useEffect, useRef, useState } from "react";
-import { useJourney } from "./journeyStore";
+import { useFaces } from "./journeyStore";
 
 const BOX = 240;
 const R = 100;
@@ -109,8 +109,8 @@ function CropStage({ src, onSave, onCancel }: { src: string; onSave: (d: string)
 }
 
 export default function FaceModal({ onClose }: { onClose: () => void }) {
-  const faces = useJourney((s) => s.faces);
-  const setFaces = useJourney((s) => s.setFaces);
+  const faces = useFaces((s) => s.faces);
+  const setFaces = useFaces((s) => s.setFaces);
   const [editing, setEditing] = useState<null | "a" | "b">(null);
   const [src, setSrc] = useState<string | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);

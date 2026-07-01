@@ -1,7 +1,7 @@
 "use client";
 import { useMemo, useState } from "react";
 import { useMapStore, type Place } from "./mapStore";
-import { useJourney } from "./journeyStore";
+import { useSmallJourney } from "./journeyStore";
 
 function fmtFull(iso: string): string {
   const d = new Date(iso);
@@ -85,7 +85,7 @@ export default function MemoryCard({ isAdmin, onChanged }: { isAdmin: boolean; o
   const selectPlace = useMapStore((s) => s.selectPlace);
   const updatePlaceLocal = useMapStore((s) => s.updatePlaceLocal);
   const updateTripLocal = useMapStore((s) => s.updateTripLocal);
-  const startJourney = useJourney((s) => s.start);
+  const startJourney = useSmallJourney((s) => s.start);
   const [lightbox, setLightbox] = useState<{ photos: { id: string; thumbUrl: string | null }[]; i: number } | null>(null);
 
   const place: Place | undefined = useMemo(
@@ -111,7 +111,7 @@ export default function MemoryCard({ isAdmin, onChanged }: { isAdmin: boolean; o
     const stops = tripDetail!.places
       .filter((p) => typeof p.lat === "number")
       .map((p) => ({ id: p.id, tripId: tripDetail!.trip.id, lat: p.lat, lng: p.lng, title: p.placeName || p.title }));
-    if (stops.length > 1) startJourney(stops, "places");
+    if (stops.length > 1) startJourney(stops);
   }
 
   // ---- Place card (level 2 detail) ----

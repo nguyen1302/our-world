@@ -89,6 +89,7 @@ interface MapState {
   enterTripById: (id: string) => void; // silent (no camera change) — for the journey
   exitTrip: () => void;
   selectPlace: (id: string) => void;
+  markPlace: (id: string) => void;
   backToTrip: () => void;
   updatePlaceLocal: (id: string, patch: Partial<Place>) => void;
   updateTripLocal: (patch: Partial<TripDetail["trip"]>) => void;
@@ -148,6 +149,8 @@ export const useMapStore = create<MapState>((set, get) => ({
     set({ selectedPlaceId: id });
     if (p) set({ focusPoint: { lat: p.lat, lng: p.lng, zoom: 14, nonce: nonce() } });
   },
+  // select a place WITHOUT moving the camera (journey controller owns the camera)
+  markPlace: (id) => set({ selectedPlaceId: id }),
   backToTrip: () => {
     const d = get().tripDetail;
     set({

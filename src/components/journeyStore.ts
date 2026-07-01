@@ -12,6 +12,7 @@ export interface Stop {
   lng: number;
   title: string;
 }
+export type JourneyMode = "trips" | "places";
 
 function loadFaces(): Faces {
   if (typeof window === "undefined") return { a: null, b: null };
@@ -22,49 +23,13 @@ function loadFaces(): Faces {
   return { a: null, b: null };
 }
 
-export type JourneyMode = "trips" | "places";
-
-interface JourneyState {
-  playing: boolean;
-  mode: JourneyMode;
-  stops: Stop[];
-  index: number;
-  phase: "paused" | "moving";
-  progress: number;
+// Faces are a single shared identity (the couple), not per-journey.
+interface FacesState {
   faces: Faces;
-  activePlaceId: string | null;
-
-  start: (stops: Stop[], mode: JourneyMode) => void;
-  exit: () => void;
-  next: () => void;
-  setProgress: (p: number) => void;
-  arrive: () => void;
   setFaces: (faces: Faces) => void;
-  setActivePlace: (id: string | null) => void;
 }
-
-export const useJourney = create<JourneyState>((set, get) => ({
-  playing: false,
-  mode: "places",
-  stops: [],
-  index: 0,
-  phase: "paused",
-  progress: 0,
+export const useFaces = create<FacesState>((set) => ({
   faces: loadFaces(),
-  activePlaceId: null,
-
-  start: (stops, mode) => set({ playing: true, mode, stops, index: 0, phase: "paused", progress: 0, activePlaceId: null }),
-  exit: () => set({ playing: false, phase: "paused", progress: 0, index: 0, activePlaceId: null }),
-  next: () => {
-    const { index, stops } = get();
-    if (index >= stops.length - 1) {
-      set({ playing: false, phase: "paused", progress: 0, index: 0, activePlaceId: null });
-    } else {
-      set({ phase: "moving", progress: 0 });
-    }
-  },
-  setProgress: (p) => set({ progress: p }),
-  arrive: () => set((s) => ({ index: s.index + 1, phase: "paused", progress: 0 })),
   setFaces: (faces) => {
     if (typeof window !== "undefined") {
       try {
@@ -73,8 +38,51 @@ export const useJourney = create<JourneyState>((set, get) => ({
     }
     set({ faces });
   },
-  setActivePlace: (id) => set({ activePlaceId: id }),
 }));
+
+export interface JourneyState {
+  playing: boolean;
+  mode: JourneyMode;
+  stops: Stop[];
+  index: number;
+  phase: "paused" | "moving";
+  progress: number;
+  activePlaceId: string | null;
+
+  start: (stops: Stop[]) => void;
+  exit: () => void;
+  next: () => void;
+  setProgress: (p: number) => void;
+  arrive: () => void;
+  setActivePlace: (id: string | null) => void;
+}
+
+// Factory so we can run two fully independent journeys (big trips + small places).
+function makeJourney(mode: JourneyMode) {
+  return create<JourneyState>((set, get) => ({
+    playing: false,
+    mode,
+    stops: [],
+    index: 0,
+    phase: "paused",
+    progress: 0,
+    activePlaceId: null,
+
+    start: (stops) => set({ playing: true, stops, index: 0, phase: "paused", progress: 0, activePlaceId: null }),
+    exit: () => set({ playing: false, phase: "paused", progress: 0, index: 0, activePlaceId: null }),
+    next: () => {
+      const { index, stops } = get();
+      if (index >= stops.length - 1) set({ playing: false, phase: "paused", progress: 0, index: 0 });
+      else set({ phase: "moving", progress: 0 });
+    },
+    setProgress: (p) => set({ progress: p }),
+    arrive: () => set((s) => ({ index: s.index + 1, phase: "paused", progress: 0 })),
+    setActivePlace: (id) => set({ activePlaceId: id }),
+  }));
+}
+
+export const useBigJourney = makeJourney("trips");
+export const useSmallJourney = makeJourney("places");
 
 export function haversineKm(a: { lat: number; lng: number }, b: { lat: number; lng: number }): number {
   const R = 6371;

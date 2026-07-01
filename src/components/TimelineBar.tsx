@@ -1,7 +1,7 @@
 "use client";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useMapStore } from "./mapStore";
-import { useJourney } from "./journeyStore";
+import { useBigJourney } from "./journeyStore";
 
 const PAD = 50;
 
@@ -24,8 +24,8 @@ export default function TimelineBar() {
   const trackRef = useRef<HTMLDivElement>(null);
   const [zoom, setZoom] = useState(1);
 
-  const playing = useJourney((s) => s.playing);
-  const startJourney = useJourney((s) => s.start);
+  const playing = useBigJourney((s) => s.playing);
+  const startJourney = useBigJourney((s) => s.start);
 
   const level2 = !!focusedTripId && !!tripDetail;
   const activeId = level2 ? selectedPlaceId : null;
@@ -79,7 +79,7 @@ export default function TimelineBar() {
     const stops = [...memories]
       .sort((a, b) => a.startAt.localeCompare(b.startAt))
       .map((m) => ({ id: m.id, tripId: null, lat: m.lat, lng: m.lng, title: m.title }));
-    if (stops.length > 1) startJourney(stops, "trips");
+    if (stops.length > 1) startJourney(stops);
   }
 
   const title = level2 ? tripDetail!.trip.title : "Dòng thời gian";

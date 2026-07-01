@@ -6,7 +6,7 @@ import "leaflet/dist/leaflet.css";
 import "leaflet.markercluster/dist/MarkerCluster.css";
 import "leaflet.markercluster";
 import { useMapStore } from "./mapStore";
-import { useJourney, vehicleForDistance, haversineKm } from "./journeyStore";
+import { useBigJourney, useSmallJourney, useFaces, vehicleForDistance, haversineKm } from "./journeyStore";
 import { vehicleSvg, type VehicleType } from "./vehicles";
 
 const VN_CENTER: [number, number] = [16.2, 107.2];
@@ -131,24 +131,31 @@ function segVehicle(stops: { lat: number; lng: number }[], i: number): VehicleTy
   return vehicleForDistance(haversineKm(a, b));
 }
 
+// A single vehicle at any moment. The ACTIVE journey = small when it is playing
+// (we're riding places inside a trip), otherwise the big journey. Only the active
+// journey owns the vehicle + camera, so the two never fight and only one vehicle shows.
 function JourneyController() {
   const map = useMap();
-  const selectPlace = useMapStore((s) => s.selectPlace);
+  const markPlace = useMapStore((s) => s.markPlace);
   const enterTripById = useMapStore((s) => s.enterTripById);
-  const playing = useJourney((s) => s.playing);
-  const mode = useJourney((s) => s.mode);
-  const stops = useJourney((s) => s.stops);
-  const phase = useJourney((s) => s.phase);
-  const index = useJourney((s) => s.index);
-  const faces = useJourney((s) => s.faces);
-  const setProgress = useJourney((s) => s.setProgress);
-  const arrive = useJourney((s) => s.arrive);
+  const tripCache = useMapStore((s) => s.tripCache);
+  const faces = useFaces((s) => s.faces);
+
+  const bigPlaying = useBigJourney((s) => s.playing);
+  const bigPhase = useBigJourney((s) => s.phase);
+  const bigIndex = useBigJourney((s) => s.index);
+  const bigStops = useBigJourney((s) => s.stops);
+  const smallPlaying = useSmallJourney((s) => s.playing);
+  const smallPhase = useSmallJourney((s) => s.phase);
+  const smallIndex = useSmallJourney((s) => s.index);
+  const smallStops = useSmallJourney((s) => s.stops);
 
   const markerRef = useRef<L.Marker | null>(null);
   const fxRef = useRef<HTMLDivElement | null>(null);
   const rafRef = useRef<number>(0);
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const flipRef = useRef(1);
+  const autoTripRef = useRef<string | null>(null);
 
   useEffect(() => {
     const c = map.getContainer();
@@ -193,32 +200,48 @@ function JourneyController() {
     fx.appendChild(node);
   }
 
+  const anyPlaying = bigPlaying || smallPlaying;
   useEffect(() => {
-    if (!playing && markerRef.current) {
-      map.removeLayer(markerRef.current);
-      markerRef.current = null;
+    if (!anyPlaying) {
+      if (markerRef.current) {
+        map.removeLayer(markerRef.current);
+        markerRef.current = null;
+      }
       if (fxRef.current) fxRef.current.innerHTML = "";
+      autoTripRef.current = null;
     }
-  }, [playing, map]);
+  }, [anyPlaying, map]);
 
   useEffect(() => {
-    if (!playing || stops.length === 0) return;
     const cancel = () => {
       if (rafRef.current) cancelAnimationFrame(rafRef.current);
       if (timerRef.current) clearTimeout(timerRef.current);
     };
+    if (!anyPlaying) return;
+
+    // active journey: small takes over the vehicle whenever it is playing
+    const isSmall = smallPlaying;
+    const stops = isSmall ? smallStops : bigStops;
+    const phase = isSmall ? smallPhase : bigPhase;
+    const index = isSmall ? smallIndex : bigIndex;
+    if (stops.length === 0) return;
 
     if (phase === "paused") {
       const s = stops[index];
       if (!s) return;
-      if (mode === "trips") {
-        // big journey: stop at each trip (big mốc) and show its detail card
+      if (isSmall) {
+        markPlace(s.id);
+        map.flyTo([s.lat, s.lng], 14, { duration: 1.3, easeLinearity: 0.2 });
+      } else {
         enterTripById(s.id);
         map.flyTo([s.lat, s.lng], 11, { duration: 1.3, easeLinearity: 0.2 });
-      } else {
-        // small journey: stop at each place (small mốc) inside the current trip
-        selectPlace(s.id);
-        map.flyTo([s.lat, s.lng], 14, { duration: 1.3, easeLinearity: 0.2 });
+        // if this big mốc has several small mốcs, make the small journey ready (paused at #1)
+        const d = tripCache[s.id];
+        if (d && d.places.length > 1 && !smallPlaying && autoTripRef.current !== s.id) {
+          autoTripRef.current = s.id;
+          const placeStops = d.places.map((p) => ({ id: p.id, tripId: d.trip.id, lat: p.lat, lng: p.lng, title: p.placeName || p.title }));
+          useSmallJourney.getState().start(placeStops);
+        }
       }
       place(s.lat, s.lng, segVehicle(stops, Math.max(0, index - 1)), false);
       return;
@@ -249,7 +272,7 @@ function JourneyController() {
       const step = (now: number) => {
         const t = Math.min(1, (now - startTs) / dur);
         const e = ease(t);
-        setProgress(t);
+        (isSmall ? useSmallJourney : useBigJourney).getState().setProgress(t);
         const lat = from.lat + (to.lat - from.lat) * e;
         const lng = from.lng + (to.lng - from.lng) * e;
         markerRef.current?.setLatLng([lat, lng]);
@@ -258,14 +281,14 @@ function JourneyController() {
           spawnFX(lat, lng, type);
         }
         if (t < 1) rafRef.current = requestAnimationFrame(step);
-        else arrive();
+        else (isSmall ? useSmallJourney : useBigJourney).getState().arrive();
       };
       rafRef.current = requestAnimationFrame(step);
     }, 1600);
 
     return cancel;
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [playing, phase, index, stops, mode, faces, map]);
+  }, [anyPlaying, bigPlaying, bigPhase, bigIndex, bigStops, smallPlaying, smallPhase, smallIndex, smallStops, faces, map]);
 
   return null;
 }
