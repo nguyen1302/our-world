@@ -64,12 +64,30 @@ function EditableDesc({ value, isAdmin, onSave }: { value: string | null; isAdmi
   );
 }
 
-function Gallery({ photos, onOpen }: { photos: { id: string; thumbUrl: string | null }[]; onOpen: (i: number) => void }) {
+function Gallery({
+  photos,
+  onOpen,
+  admin,
+  onSetCover,
+  onDelete,
+}: {
+  photos: { id: string; thumbUrl: string | null }[];
+  onOpen: (i: number) => void;
+  admin?: boolean;
+  onSetCover?: (id: string) => void;
+  onDelete?: (id: string) => void;
+}) {
   return (
     <div className="ow-gallery">
       {photos.map((ph, i) => (
-        <div key={ph.id} onClick={() => onOpen(i)}>
-          <img src={ph.thumbUrl ?? ""} alt="" loading="lazy" />
+        <div key={ph.id} className="ow-gcell">
+          <img src={ph.thumbUrl ?? ""} alt="" loading="lazy" onClick={() => onOpen(i)} />
+          {admin && (
+            <div className="ow-gcell__acts">
+              <button title="Đặt làm ảnh bìa" onClick={() => onSetCover?.(ph.id)}>★</button>
+              <button title="Xoá ảnh" className="ow-gcell__del" onClick={() => onDelete?.(ph.id)}>🗑</button>
+            </div>
+          )}
         </div>
       ))}
     </div>
@@ -85,6 +103,7 @@ export default function MemoryCard({ isAdmin, onChanged }: { isAdmin: boolean; o
   const selectPlace = useMapStore((s) => s.selectPlace);
   const updatePlaceLocal = useMapStore((s) => s.updatePlaceLocal);
   const updateTripLocal = useMapStore((s) => s.updateTripLocal);
+  const refreshTripDetail = useMapStore((s) => s.refreshTripDetail);
   const startJourney = useSmallJourney((s) => s.start);
   const [lightbox, setLightbox] = useState<{ photos: { id: string; thumbUrl: string | null }[]; i: number } | null>(null);
 
@@ -113,6 +132,21 @@ export default function MemoryCard({ isAdmin, onChanged }: { isAdmin: boolean; o
       .map((p) => ({ id: p.id, tripId: tripDetail!.trip.id, lat: p.lat, lng: p.lng, title: p.placeName || p.title }));
     if (stops.length > 1) startJourney(stops);
   }
+  async function reloadTrip() {
+    const d = await fetch(`/api/memories/${focusedTripId}`).then((r) => r.json());
+    if (d?.trip) refreshTripDetail(d);
+    onChanged();
+  }
+  async function setCover(placeId: string, photoId: string) {
+    await patchPlace(placeId, { coverPhotoId: photoId });
+    await reloadTrip();
+  }
+  async function deletePhoto(photoId: string) {
+    if (!confirm("Xoá ảnh này? (xoá luôn khỏi lưu trữ, không khôi phục được)")) return;
+    await fetch(`/api/photos/${photoId}`, { method: "DELETE" });
+    setLightbox(null);
+    await reloadTrip();
+  }
 
   // ---- Place card (level 2 detail) ----
   if (place) {
@@ -138,9 +172,24 @@ export default function MemoryCard({ isAdmin, onChanged }: { isAdmin: boolean; o
           </div>
           <EditableDesc value={place.description} isAdmin={isAdmin} onSave={(v) => { updatePlaceLocal(place.id, { description: v }); patchPlace(place.id, { description: v }); }} />
           <div className="ow-card__albumlabel">Địa điểm · {place.photos.length} ảnh</div>
-          <Gallery photos={place.photos} onOpen={(i) => setLightbox({ photos: place.photos, i })} />
+          <Gallery
+            photos={place.photos}
+            onOpen={(i) => setLightbox({ photos: place.photos, i })}
+            admin={isAdmin}
+            onSetCover={(pid) => setCover(place.id, pid)}
+            onDelete={deletePhoto}
+          />
         </div>
-        {lightbox && <Lightbox {...lightbox} onClose={() => setLightbox(null)} onNav={(i) => setLightbox((l) => l && { ...l, i })} />}
+        {lightbox && (
+          <Lightbox
+            {...lightbox}
+            admin={isAdmin}
+            onClose={() => setLightbox(null)}
+            onNav={(i) => setLightbox((l) => l && { ...l, i })}
+            onSetCover={(pid) => setCover(place.id, pid)}
+            onDelete={deletePhoto}
+          />
+        )}
       </div>
     );
   }
@@ -206,24 +255,53 @@ export default function MemoryCard({ isAdmin, onChanged }: { isAdmin: boolean; o
   );
 }
 
-function Lightbox({ photos, i, onClose, onNav }: { photos: { id: string; thumbUrl: string | null }[]; i: number; onClose: () => void; onNav: (i: number) => void }) {
+function Lightbox({
+  photos,
+  i,
+  onClose,
+  onNav,
+  admin,
+  onSetCover,
+  onDelete,
+}: {
+  photos: { id: string; thumbUrl: string | null }[];
+  i: number;
+  onClose: () => void;
+  onNav: (i: number) => void;
+  admin?: boolean;
+  onSetCover?: (id: string) => void;
+  onDelete?: (id: string) => void;
+}) {
+  const cur = photos[i];
   return (
     <div className="ow-lightbox" onClick={onClose}>
-      <div className="ow-lightbox__inner" onClick={(e) => e.stopPropagation()}>
-        <img src={photos[i]?.thumbUrl ?? ""} alt="" />
-        <div className="ow-lightbox__nav">
-          <div className="ow-lightbox__btn" onClick={() => onNav((i - 1 + photos.length) % photos.length)}>
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M15 5l-7 7 7 7" /></svg>
-          </div>
-          <div className="ow-lightbox__counter">{i + 1} / {photos.length}</div>
-          <div className="ow-lightbox__btn" onClick={() => onNav((i + 1) % photos.length)}>
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M9 5l7 7-7 7" /></svg>
-          </div>
+      <img className="ow-lightbox__img" src={cur?.thumbUrl ?? ""} alt="" onClick={(e) => e.stopPropagation()} />
+
+      <div className="ow-lightbox__top" onClick={(e) => e.stopPropagation()}>
+        <span className="ow-lightbox__counter">{i + 1} / {photos.length}</span>
+        <div className="ow-lightbox__topacts">
+          {admin && cur && (
+            <>
+              <button className="ow-lightbox__btn" title="Đặt làm ảnh bìa" onClick={() => onSetCover?.(cur.id)}>★</button>
+              <button className="ow-lightbox__btn" title="Xoá ảnh" onClick={() => onDelete?.(cur.id)}>🗑</button>
+            </>
+          )}
+          <button className="ow-lightbox__btn" onClick={onClose}>
+            <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M6 6l12 12M18 6L6 18" /></svg>
+          </button>
         </div>
       </div>
-      <div className="ow-lightbox__btn ow-lightbox__close" onClick={onClose}>
-        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M6 6l12 12M18 6L6 18" /></svg>
-      </div>
+
+      {photos.length > 1 && (
+        <>
+          <button className="ow-lightbox__arrow ow-lightbox__arrow--l" onClick={(e) => { e.stopPropagation(); onNav((i - 1 + photos.length) % photos.length); }}>
+            <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M15 5l-7 7 7 7" /></svg>
+          </button>
+          <button className="ow-lightbox__arrow ow-lightbox__arrow--r" onClick={(e) => { e.stopPropagation(); onNav((i + 1) % photos.length); }}>
+            <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M9 5l7 7-7 7" /></svg>
+          </button>
+        </>
+      )}
     </div>
   );
 }

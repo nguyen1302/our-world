@@ -70,7 +70,10 @@ body { font-family: var(--sans); -webkit-font-smoothing: antialiased; text-rende
 .ow-brand__name { font-family: var(--serif); font-style: italic; font-size: 20px; color: var(--cream); line-height: 1; }
 .ow-brand__sub { font-size: 10.5px; letter-spacing: .18em; text-transform: uppercase; color: var(--muted); margin-top: 5px; }
 
-.ow-topright { display: flex; gap: 10px; align-items: stretch; flex-wrap: wrap; justify-content: flex-end; max-width: 64vw; }
+.ow-topright { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; justify-content: flex-end; max-width: 64vw; }
+/* keep every chip/button the same height + vertically centered */
+.ow-topright > * { height: 44px; }
+.ow-stats { height: 44px; }
 
 .ow-stats { display: flex; align-items: center; background: var(--surface); backdrop-filter: blur(12px); border: 1px solid var(--line); border-radius: 13px; padding: 8px 4px; box-shadow: var(--shadow); }
 .ow-stat { padding: 0 14px; text-align: center; }
@@ -83,7 +86,7 @@ body { font-family: var(--sans); -webkit-font-smoothing: antialiased; text-rende
 .ow-otd__k { font-size: 10px; letter-spacing: .12em; text-transform: uppercase; line-height: 1; color: var(--gold); }
 .ow-otd__v { font-size: 12.5px; color: var(--cream); margin-top: 4px; line-height: 1; }
 
-.ow-pillbtn { cursor: pointer; display: flex; align-items: center; gap: 8px; border-radius: 13px; padding: 0 15px; font-size: 13px; background: var(--surface); color: var(--cream); border: 1px solid var(--line); backdrop-filter: blur(12px); box-shadow: var(--shadow); }
+.ow-pillbtn { height: 44px; cursor: pointer; display: flex; align-items: center; gap: 8px; border-radius: 13px; padding: 0 15px; font-size: 13px; background: var(--surface); color: var(--cream); border: 1px solid var(--line); backdrop-filter: blur(12px); box-shadow: var(--shadow); }
 .ow-pillbtn--on { background: linear-gradient(135deg, rgba(233,184,114,.9), rgba(217,134,149,.9)); color: #1a1310; border-color: var(--gold); font-weight: 600; }
 .ow-iconbtn { width: 44px; flex: none; justify-content: center; padding: 0; }
 
@@ -144,8 +147,12 @@ body { font-family: var(--sans); -webkit-font-smoothing: antialiased; text-rende
 .ow-card__edithint { display: inline-flex; align-items: center; gap: 5px; margin-top: 7px; font-size: 11px; color: var(--muted-2); cursor: text; }
 .ow-card__albumlabel { margin-top: 18px; font-size: 10.5px; letter-spacing: .14em; text-transform: uppercase; color: var(--muted-2); }
 .ow-gallery { margin-top: 11px; display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; }
-.ow-gallery div { position: relative; padding-bottom: 100%; border-radius: 9px; overflow: hidden; cursor: zoom-in; background: rgba(240,235,220,.06); }
-.ow-gallery img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+.ow-gcell { position: relative; padding-bottom: 100%; border-radius: 9px; overflow: hidden; background: rgba(240,235,220,.06); }
+.ow-gcell img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; cursor: zoom-in; }
+.ow-gcell__acts { position: absolute; top: 4px; right: 4px; display: flex; gap: 4px; opacity: 0; transition: opacity .15s; }
+.ow-gcell:hover .ow-gcell__acts { opacity: 1; }
+.ow-gcell__acts button { width: 24px; height: 24px; border-radius: 6px; border: none; background: rgba(10,14,11,.75); color: var(--gold); font-size: 12px; cursor: pointer; display: flex; align-items: center; justify-content: center; }
+.ow-gcell__acts .ow-gcell__del { color: #ff8a8a; }
 .ow-card__ride { display: flex; align-items: center; justify-content: center; gap: 8px; width: 100%; margin-top: 16px; padding: 11px; border: none; border-radius: 12px; cursor: pointer; font-weight: 600; font-family: var(--sans); color: #1a1310; background: linear-gradient(135deg, var(--gold), var(--rose)); box-shadow: 0 6px 18px rgba(233,184,114,.28); }
 .ow-placechips { display: flex; gap: 8px; overflow-x: auto; padding: 4px 0 2px; margin-bottom: 4px; }
 .ow-placechip { flex: none; display: flex; flex-direction: column; align-items: center; gap: 5px; width: 76px; background: none; border: none; cursor: pointer; padding: 0; }
@@ -203,7 +210,7 @@ body { font-family: var(--sans); -webkit-font-smoothing: antialiased; text-rende
 .ow-empty { color: var(--muted-2); font-size: 13px; font-style: italic; }
 
 /* ---------- Unplaced (no-GPS) photos ---------- */
-.ow-unplaced-btn { flex-shrink: 0; display: flex; align-items: center; gap: 6px; background: var(--surface); backdrop-filter: blur(12px); border: 1px solid rgba(217,134,149,.5); border-radius: 13px; padding: 0 13px; height: 40px; color: var(--cream); font-size: 13px; cursor: pointer; }
+.ow-unplaced-btn { flex-shrink: 0; display: flex; align-items: center; gap: 6px; background: var(--surface); backdrop-filter: blur(12px); border: 1px solid rgba(217,134,149,.5); border-radius: 13px; padding: 0 13px; height: 44px; color: var(--cream); font-size: 13px; cursor: pointer; }
 .ow-unplaced-btn b { color: var(--rose); }
 .ow-modal__box--wide { width: 560px; }
 .ow-unplaced-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; max-height: 46vh; overflow-y: auto; margin: 6px 0 12px; }
@@ -219,13 +226,18 @@ body { font-family: var(--sans); -webkit-font-smoothing: antialiased; text-rende
 .ow-placing button { background: rgba(240,235,220,.08); border: 1px solid var(--line); color: var(--muted); border-radius: 999px; padding: 5px 12px; cursor: pointer; }
 
 /* ---------- Lightbox ---------- */
-.ow-lightbox { position: fixed; inset: 0; z-index: 2000; background: rgba(6,9,7,.93); backdrop-filter: blur(10px); display: flex; align-items: center; justify-content: center; animation: wwhFade .25s ease; }
-.ow-lightbox__inner { position: relative; display: flex; flex-direction: column; align-items: center; gap: 16px; max-width: 90vw; }
-.ow-lightbox img { max-width: 88vw; max-height: 78vh; border-radius: 10px; box-shadow: 0 30px 90px rgba(0,0,0,.65); display: block; }
-.ow-lightbox__nav { display: flex; align-items: center; gap: 22px; }
-.ow-lightbox__btn { width: 44px; height: 44px; border-radius: 50%; border: 1px solid rgba(240,235,220,.24); background: rgba(24,30,25,.7); display: flex; align-items: center; justify-content: center; cursor: pointer; color: var(--cream); }
-.ow-lightbox__counter { font-family: var(--serif); font-size: 14px; color: #d8cec0; letter-spacing: .06em; min-width: 64px; text-align: center; }
-.ow-lightbox__close { position: absolute; top: 22px; right: 24px; }
+/* Full-screen viewer (Drive-like) */
+.ow-lightbox { position: fixed; inset: 0; z-index: 2000; background: rgba(4,6,5,.96); backdrop-filter: blur(6px); display: flex; align-items: center; justify-content: center; animation: wwhFade .2s ease; }
+.ow-lightbox__img { max-width: 96vw; max-height: 92vh; object-fit: contain; border-radius: 6px; box-shadow: 0 20px 80px rgba(0,0,0,.6); display: block; }
+.ow-lightbox__top { position: absolute; top: 0; left: 0; right: 0; height: 60px; display: flex; align-items: center; justify-content: space-between; padding: 0 18px; background: linear-gradient(to bottom, rgba(0,0,0,.55), transparent); }
+.ow-lightbox__topacts { display: flex; align-items: center; gap: 10px; }
+.ow-lightbox__counter { font-family: var(--serif); font-size: 15px; color: #eee; letter-spacing: .06em; }
+.ow-lightbox__btn { width: 42px; height: 42px; border-radius: 50%; border: 1px solid rgba(255,255,255,.22); background: rgba(20,20,20,.55); display: flex; align-items: center; justify-content: center; cursor: pointer; color: #fff; font-size: 16px; }
+.ow-lightbox__btn:hover { background: rgba(40,40,40,.8); }
+.ow-lightbox__arrow { position: absolute; top: 50%; transform: translateY(-50%); width: 52px; height: 52px; border-radius: 50%; border: none; background: rgba(20,20,20,.45); color: #fff; display: flex; align-items: center; justify-content: center; cursor: pointer; }
+.ow-lightbox__arrow:hover { background: rgba(40,40,40,.75); }
+.ow-lightbox__arrow--l { left: 16px; }
+.ow-lightbox__arrow--r { right: 16px; }
 
 /* ---------- Login ---------- */
 .ow-login { height: 100dvh; display: flex; align-items: center; justify-content: center; background: radial-gradient(120% 120% at 50% 0%, #14201a 0%, #0e1410 60%); }

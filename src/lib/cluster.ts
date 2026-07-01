@@ -170,6 +170,38 @@ export async function assignMemoryToTrip(
   return tripId;
 }
 
+/**
+ * Recompute a place (memory) after a photo is removed: refresh cover/bounds from
+ * remaining photos, or soft-delete the memory if none remain. Returns its tripId.
+ */
+export async function recomputeMemoryAfterPhotoChange(memoryId: string): Promise<string | null> {
+  const rows = await db
+    .select({ tripId: memories.tripId })
+    .from(memories)
+    .where(eq(memories.id, memoryId))
+    .limit(1);
+  const tripId = rows[0]?.tripId ?? null;
+
+  const pics = await db
+    .select({ id: photos.id, takenAt: photos.takenAt })
+    .from(photos)
+    .where(and(eq(photos.memoryId, memoryId), isNull(photos.deletedAt)))
+    .orderBy(sql`${photos.takenAt} asc nulls last`);
+
+  if (pics.length === 0) {
+    await db.update(memories).set({ deletedAt: new Date() }).where(eq(memories.id, memoryId));
+  } else {
+    const times = pics.map((p) => p.takenAt).filter(Boolean) as Date[];
+    const patch: Record<string, unknown> = { coverPhotoId: pics[0].id, updatedAt: new Date() };
+    if (times.length) {
+      patch.startAt = times.reduce((a, t) => (t < a ? t : a), times[0]);
+      patch.endAt = times.reduce((a, t) => (t > a ? t : a), times[0]);
+    }
+    await db.update(memories).set(patch).where(eq(memories.id, memoryId));
+  }
+  return tripId;
+}
+
 /** Recompute a trip's bounds/centroid/cover/title from its member memories. */
 export async function recomputeTrip(tripId: string): Promise<void> {
   const members = await db
@@ -186,7 +218,11 @@ export async function recomputeTrip(tripId: string): Promise<void> {
     .from(memories)
     .where(and(eq(memories.tripId, tripId), isNull(memories.deletedAt)));
 
-  if (members.length === 0) return;
+  if (members.length === 0) {
+    // trip has no places left → soft-delete it
+    await db.update(trips).set({ deletedAt: new Date() }).where(eq(trips.id, tripId));
+    return;
+  }
 
   const lat = members.reduce((s, m) => s + m.lat, 0) / members.length;
   const lng = members.reduce((s, m) => s + m.lng, 0) / members.length;

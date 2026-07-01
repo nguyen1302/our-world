@@ -2,6 +2,7 @@ import {
   S3Client,
   PutObjectCommand,
   GetObjectCommand,
+  DeleteObjectCommand,
 } from "@aws-sdk/client-s3";
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 import { getConfig } from "./config";
@@ -45,6 +46,7 @@ export interface StorageProvider {
   presignGet(key: string, expiresSeconds?: number): Promise<string>;
   putObject(key: string, body: Buffer, contentType: string): Promise<void>;
   getObject(key: string): Promise<Buffer>;
+  deleteObject(key: string): Promise<void>;
 }
 
 class S3Provider implements StorageProvider {
@@ -85,6 +87,10 @@ class S3Provider implements StorageProvider {
     const res = await this.client.send(new GetObjectCommand({ Bucket: this.bucket, Key: key }));
     const bytes = await res.Body!.transformToByteArray();
     return Buffer.from(bytes);
+  }
+
+  async deleteObject(key: string): Promise<void> {
+    await this.client.send(new DeleteObjectCommand({ Bucket: this.bucket, Key: key }));
   }
 }
 

@@ -92,6 +92,7 @@ interface MapState {
   enterTrip: (detail: TripDetail) => void;
   cacheTrips: (details: TripDetail[]) => void;
   enterTripById: (id: string) => void; // silent (no camera change) — for the journey
+  refreshTripDetail: (detail: TripDetail) => void; // update card data, keep selection + camera
   exitTrip: () => void;
   selectPlace: (id: string) => void;
   markPlace: (id: string) => void;
@@ -143,6 +144,12 @@ export const useMapStore = create<MapState>((set, get) => ({
   enterTripById: (id) => {
     const d = get().tripCache[id];
     if (d) set({ focusedTripId: id, tripDetail: d, selectedPlaceId: null });
+  },
+  refreshTripDetail: (detail) => {
+    const cur = get();
+    if (cur.focusedTripId !== detail.trip.id) return;
+    const stillThere = detail.places.some((p) => p.id === cur.selectedPlaceId);
+    set({ tripDetail: detail, selectedPlaceId: stillThere ? cur.selectedPlaceId : null });
   },
   exitTrip: () => {
     set({

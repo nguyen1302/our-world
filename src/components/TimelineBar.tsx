@@ -5,74 +5,66 @@ import { useBigJourney } from "./journeyStore";
 
 const PAD = 50;
 
-interface Bead {
-  id: string;
-  startAt: string;
-  cover: string | null;
-  title: string;
-}
-
+// The timeline ALWAYS shows trips (big mốc). Entering a trip does NOT switch the
+// timeline to places — it just highlights that trip and zooms the axis in a bit.
 export default function TimelineBar() {
   const memories = useMapStore((s) => s.memories);
   const focusedTripId = useMapStore((s) => s.focusedTripId);
-  const tripDetail = useMapStore((s) => s.tripDetail);
-  const selectedPlaceId = useMapStore((s) => s.selectedPlaceId);
   const requestEnterTrip = useMapStore((s) => s.requestEnterTrip);
-  const selectPlace = useMapStore((s) => s.selectPlace);
-  const exitTrip = useMapStore((s) => s.exitTrip);
   const cacheTrips = useMapStore((s) => s.cacheTrips);
   const trackRef = useRef<HTMLDivElement>(null);
   const [zoom, setZoom] = useState(1);
 
   const playing = useBigJourney((s) => s.playing);
+  const jStops = useBigJourney((s) => s.stops);
+  const jIndex = useBigJourney((s) => s.index);
   const startJourney = useBigJourney((s) => s.start);
 
-  const level2 = !!focusedTripId && !!tripDetail;
-  const activeId = level2 ? selectedPlaceId : null;
+  // highlight: the trip currently in the journey, else the trip we're inside
+  const activeId = playing ? jStops[jIndex]?.id ?? null : focusedTripId;
+  // "zoom to lên" when focused on a trip
+  const effZoom = focusedTripId || playing ? Math.max(zoom, 2.4) : zoom;
 
-  const beads: Bead[] = useMemo(() => {
-    const src = level2
-      ? tripDetail!.places.map((p) => ({ id: p.id, startAt: p.startAt, cover: p.photos[0]?.thumbUrl ?? null, title: p.placeName || p.title }))
-      : memories.map((m) => ({ id: m.id, startAt: m.startAt, cover: m.coverThumbUrl, title: m.title }));
-    return [...src].sort((a, b) => a.startAt.localeCompare(b.startAt));
-  }, [level2, tripDetail, memories]);
+  const beads = useMemo(
+    () =>
+      [...memories]
+        .sort((a, b) => a.startAt.localeCompare(b.startAt))
+        .map((m) => ({ id: m.id, startAt: m.startAt, cover: m.coverThumbUrl, title: m.title })),
+    [memories],
+  );
 
   const geom = useMemo(() => {
     if (beads.length === 0) return null;
     const t0 = new Date(beads[0].startAt).getTime();
-    const span = new Date(beads[beads.length - 1].startAt).getTime() - t0;
-    // adapt scale: trips span years, places span hours — normalize to a readable width
-    const pxPerDay = (level2 ? 40 : 2.4) * zoom;
+    const pxPerDay = 2.4 * effZoom;
     const dayOf = (iso: string) => (new Date(iso).getTime() - t0) / 86400000;
     const xOf = (iso: string) => PAD + dayOf(iso) * pxPerDay;
     const totalW = Math.max(560, PAD * 2 + dayOf(beads[beads.length - 1].startAt) * pxPerDay);
-    return { xOf, totalW, span };
-  }, [beads, zoom, level2]);
+    return { xOf, totalW };
+  }, [beads, effZoom]);
 
   const ticks = useMemo(() => {
     if (!geom) return [];
     const seen: Record<string, boolean> = {};
     const out: { label: string; x: number }[] = [];
     for (const b of beads) {
-      const key = level2 ? b.startAt.slice(0, 10) : b.startAt.slice(0, 4);
-      if (!seen[key]) {
-        seen[key] = true;
-        const label = level2 ? `${Number(b.startAt.slice(8, 10))}/${Number(b.startAt.slice(5, 7))}` : key;
-        out.push({ label, x: geom.xOf(b.startAt) });
+      const y = b.startAt.slice(0, 4);
+      if (!seen[y]) {
+        seen[y] = true;
+        out.push({ label: y, x: geom.xOf(b.startAt) });
       }
     }
     return out;
-  }, [beads, geom, level2]);
+  }, [beads, geom]);
 
+  // scroll the highlighted trip into view (during journey / when entering a trip)
   useEffect(() => {
     const el = trackRef.current;
     if (!el) return;
     const active = el.querySelector('[data-active="1"]') as HTMLElement | null;
     if (active) el.scrollLeft = active.offsetLeft - el.clientWidth / 2 + active.clientWidth / 2;
-  }, [activeId, zoom, level2]);
+  }, [activeId, effZoom]);
 
-  // big journey: ride between the trips (big mốc). Prefetch each trip's places so
-  // the trip detail card is ready when we stop at it.
   async function playBigTrips() {
     const details = await Promise.all(memories.map((m) => fetch(`/api/memories/${m.id}`).then((r) => r.json())));
     cacheTrips(details);
@@ -82,28 +74,17 @@ export default function TimelineBar() {
     if (stops.length > 1) startJourney(stops);
   }
 
-  const title = level2 ? tripDetail!.trip.title : "Dòng thời gian";
-  const rangeLabel = beads.length
-    ? level2
-      ? `${beads.length} địa điểm`
-      : `${beads[0].startAt.slice(0, 4)} – ${beads[beads.length - 1].startAt.slice(0, 4)}`
-    : "";
+  const rangeLabel = beads.length ? `${beads[0].startAt.slice(0, 4)} – ${beads[beads.length - 1].startAt.slice(0, 4)}` : "";
 
   return (
     <div className="ow-tlbar">
       <div className="ow-tl-head">
-        {level2 ? (
-          <button className="ow-tl-back" onClick={exitTrip} title="Quay lại các chuyến">
-            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M15 5l-7 7 7 7" /></svg>
-          </button>
-        ) : (
-          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#e9b872" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="8.5" /><path d="M12 7.5V12l3 2" /></svg>
-        )}
-        <span className="ow-tl-title">{title}</span>
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#e9b872" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="8.5" /><path d="M12 7.5V12l3 2" /></svg>
+        <span className="ow-tl-title">Dòng thời gian</span>
         {beads.length > 0 && <span className="ow-tl-sep">·</span>}
         <span className="ow-tl-range">{rangeLabel}</span>
         <div className="ow-tl-spacer" />
-        {!level2 && beads.length > 1 && !playing && (
+        {beads.length > 1 && !playing && (
           <button className="ow-tl-play" onClick={playBigTrips}>
             <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M7 5v14l12-7z" /></svg>
             Chuyến đi
@@ -140,7 +121,7 @@ export default function TimelineBar() {
                   data-active={active ? "1" : "0"}
                   className={`ow-tlbead ${active ? "ow-tlbead--active" : ""}`}
                   style={{ left: geom!.xOf(b.startAt), zIndex: active ? 4 : 3 }}
-                  onClick={() => (level2 ? selectPlace(b.id) : requestEnterTrip(b.id))}
+                  onClick={() => requestEnterTrip(b.id)}
                   title={b.title}
                 >
                   <div className="ow-tlbead__thumb">
