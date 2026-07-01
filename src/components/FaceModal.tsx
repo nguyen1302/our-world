@@ -5,25 +5,31 @@ import { useFaces } from "./journeyStore";
 const BOX = 240;
 const R = 100;
 
+const DPR = typeof window !== "undefined" ? Math.min(window.devicePixelRatio || 1, 2) : 1;
+
 function CropStage({ src, onSave, onCancel }: { src: string; onSave: (d: string) => void; onCancel: () => void }) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const imgRef = useRef<HTMLImageElement | null>(null);
-  const [scale, setScale] = useState(1);
-  const posRef = useRef({ x: 0, y: 0 });
+  const posRef = useRef({ x: 0, y: 0 }); // top-left of image, in BOX (css) px
   const dragRef = useRef<{ x: number; y: number } | null>(null);
+  const [scale, setScale] = useState(1);
+  const [range, setRange] = useState({ min: 0.1, max: 4, cover: 1 });
+  const [err, setErr] = useState(false);
 
   function draw() {
     const canvas = canvasRef.current;
     const img = imgRef.current;
     if (!canvas || !img) return;
     const ctx = canvas.getContext("2d")!;
-    ctx.clearRect(0, 0, BOX, BOX);
-    const w = img.width * scale;
-    const h = img.height * scale;
-    ctx.drawImage(img, posRef.current.x, posRef.current.y, w, h);
+    ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
+    ctx.imageSmoothingEnabled = true;
+    (ctx as any).imageSmoothingQuality = "high";
+    ctx.fillStyle = "#0f172a";
+    ctx.fillRect(0, 0, BOX, BOX);
+    ctx.drawImage(img, posRef.current.x, posRef.current.y, img.width * scale, img.height * scale);
     // dim outside the circle
     ctx.save();
-    ctx.fillStyle = "rgba(15,23,42,0.5)";
+    ctx.fillStyle = "rgba(12,16,14,0.62)";
     ctx.beginPath();
     ctx.rect(0, 0, BOX, BOX);
     ctx.arc(BOX / 2, BOX / 2, R, 0, Math.PI * 2, true);
@@ -37,21 +43,35 @@ function CropStage({ src, onSave, onCancel }: { src: string; onSave: (d: string)
   }
 
   useEffect(() => {
+    setErr(false);
     const img = new Image();
     img.onload = () => {
       imgRef.current = img;
-      const fit = Math.max(BOX / img.width, BOX / img.height);
-      setScale(fit);
-      posRef.current = { x: (BOX - img.width * fit) / 2, y: (BOX - img.height * fit) / 2 };
-      draw();
+      const cover = Math.max(BOX / img.width, BOX / img.height); // fills the box
+      const contain = Math.min(BOX / img.width, BOX / img.height); // whole image visible
+      setRange({ min: contain * 0.6, max: cover * 6, cover });
+      posRef.current = { x: (BOX - img.width * cover) / 2, y: (BOX - img.height * cover) / 2 };
+      setScale(cover); // triggers redraw via effect
     };
+    img.onerror = () => setErr(true); // e.g. HEIC that the browser can't decode
     img.src = src;
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [src]);
 
   useEffect(draw, [scale]);
 
+  // zoom around the box center so it doesn't jump
+  function zoomTo(next: number) {
+    const cx = BOX / 2;
+    const cy = BOX / 2;
+    const u = (cx - posRef.current.x) / scale;
+    const v = (cy - posRef.current.y) / scale;
+    posRef.current = { x: cx - u * next, y: cy - v * next };
+    setScale(next);
+  }
+
   function onDown(e: React.PointerEvent) {
+    (e.target as HTMLElement).setPointerCapture?.(e.pointerId);
     dragRef.current = { x: e.clientX - posRef.current.x, y: e.clientY - posRef.current.y };
   }
   function onMove(e: React.PointerEvent) {
@@ -64,43 +84,63 @@ function CropStage({ src, onSave, onCancel }: { src: string; onSave: (d: string)
   }
 
   function save() {
-    const canvas = canvasRef.current;
-    if (!canvas) return;
+    const img = imgRef.current;
+    if (!img) return;
     const out = document.createElement("canvas");
-    out.width = 200;
-    out.height = 200;
+    out.width = 240;
+    out.height = 240;
     const ctx = out.getContext("2d")!;
+    ctx.imageSmoothingEnabled = true;
+    (ctx as any).imageSmoothingQuality = "high";
     ctx.beginPath();
-    ctx.arc(100, 100, 100, 0, Math.PI * 2);
+    ctx.arc(120, 120, 120, 0, Math.PI * 2);
     ctx.clip();
-    ctx.drawImage(canvas, BOX / 2 - R, BOX / 2 - R, 2 * R, 2 * R, 0, 0, 200, 200);
+    // map the circle region (center R) of the stage into the 240px output
+    const k = 240 / (2 * R);
+    ctx.drawImage(
+      img,
+      posRef.current.x * k - (BOX / 2 - R) * k,
+      posRef.current.y * k - (BOX / 2 - R) * k,
+      img.width * scale * k,
+      img.height * scale * k,
+    );
     onSave(out.toDataURL("image/png"));
   }
 
   return (
     <div className="ow-crop">
-      <p className="ow-crop__hint">Kéo để chỉnh vị trí, dùng thanh trượt để phóng to khuôn mặt.</p>
-      <canvas
-        ref={canvasRef}
-        width={BOX}
-        height={BOX}
-        className="ow-crop__canvas"
-        onPointerDown={onDown}
-        onPointerMove={onMove}
-        onPointerUp={onUp}
-        onPointerLeave={onUp}
-      />
-      <input
-        type="range"
-        min={0.2}
-        max={4}
-        step={0.01}
-        value={scale}
-        onChange={(e) => setScale(Number(e.target.value))}
-      />
+      <p className="ow-crop__hint">Kéo để chỉnh vị trí · thanh trượt để phóng to / thu nhỏ.</p>
+      {err ? (
+        <p className="ow-crop__hint" style={{ color: "#ff9a9a" }}>
+          Không đọc được ảnh này (có thể là HEIC). Hãy chọn ảnh JPG/PNG.
+        </p>
+      ) : (
+        <>
+          <canvas
+            ref={canvasRef}
+            width={BOX * DPR}
+            height={BOX * DPR}
+            style={{ width: BOX, height: BOX }}
+            className="ow-crop__canvas"
+            onPointerDown={onDown}
+            onPointerMove={onMove}
+            onPointerUp={onUp}
+            onPointerCancel={onUp}
+            onPointerLeave={onUp}
+          />
+          <input
+            type="range"
+            min={range.min}
+            max={range.max}
+            step={(range.max - range.min) / 200}
+            value={scale}
+            onChange={(e) => zoomTo(Number(e.target.value))}
+          />
+        </>
+      )}
       <div className="ow-crop__actions">
         <button onClick={onCancel}>Huỷ</button>
-        <button className="ow-primary" onClick={save}>
+        <button className="ow-primary" onClick={save} disabled={err}>
           Lưu khuôn mặt
         </button>
       </div>

@@ -73,7 +73,7 @@ Browser (iPhone Safari)
 
 ## 5. Luồng upload (không chặn app server)
 
-1. Browser xin app N presigned PUT URL (app validate **chỉ image/* **, **tối đa 80 ảnh/lần**). Sau khi upload, ảnh tự được gom vào đúng Place + Trip theo EXIF thời gian/GPS — không nhập tay.
+1. Browser xin app N presigned PUT URL (app validate **chỉ image/**). Sau khi upload, ảnh tự được gom vào đúng Place + Trip theo EXIF thời gian/GPS — không nhập tay.
 2. Browser upload thẳng ảnh lên S3.
 3. Browser POST danh sách S3 key về app → app tạo `photo` (status=`pending`) + enqueue `process_photo` job.
 4. Worker mỗi job: đọc EXIF (thời gian chụp, GPS), reverse geocode (cache), tạo thumbnail bằng sharp (**strip toàn bộ EXIF/GPS khỏi thumbnail**), cập nhật `photo`, rồi chạy clustering để gán hoặc tạo `Memory`.
