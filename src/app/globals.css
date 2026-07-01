@@ -312,14 +312,15 @@ body { font-family: var(--sans); -webkit-font-smoothing: antialiased; text-rende
   .ow-app--journey .ow-tlbar,
   .ow-app--journey .ow-card { display: none; }
 
-  /* '▸ Chi tiết' toggle (mobile, during journey) */
-  .ow-jdetail-btn {
+  /* '▸ Chi tiết' toggle: ONLY during a journey (never in normal timeline mode),
+     docked just above the bottom journey bar and staying put in both states so it
+     never floats over the map or overlaps the detail sheet. */
+  .ow-app--journey .ow-jdetail-btn {
     display: block; position: absolute; z-index: 1250; left: 50%; transform: translateX(-50%);
-    bottom: 116px; background: var(--surface-solid); backdrop-filter: blur(12px);
+    bottom: 112px; background: var(--surface-solid); backdrop-filter: blur(12px);
     border: 1px solid var(--line); color: var(--cream); border-radius: 999px;
-    padding: 6px 14px; font-size: 12px; cursor: pointer;
+    padding: 7px 16px; font-size: 12.5px; cursor: pointer; box-shadow: 0 6px 18px rgba(0,0,0,.35);
   }
-  .ow-app--journey.ow-app--jdetail .ow-jdetail-btn { bottom: calc(46vh + 12px); }
   /* when detail toggled on: show the stop card as a top sheet, map + bar still visible */
   .ow-app--journey.ow-app--jdetail .ow-card {
     display: block; top: calc(var(--topbar-h) - 6px); bottom: auto;
