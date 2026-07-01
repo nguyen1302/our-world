@@ -26,7 +26,9 @@ export default function TopMenu({
       {open && (
         <div className="ow-menu__pop">
           {isAdmin && (
-            <div className="ow-menu__row" onClick={() => setOpen(false)}>
+            /* NOTE: do NOT close the menu here — closing unmounts UploadButton
+               before the file dialog / onChange runs, so nothing uploads. */
+            <div className="ow-menu__row">
               <UploadButton onUploaded={onUploaded} />
             </div>
           )}
