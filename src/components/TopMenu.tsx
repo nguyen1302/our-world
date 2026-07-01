@@ -2,6 +2,16 @@
 import { useState } from "react";
 import UploadButton from "./UploadButton";
 
+async function rethumbAll(onProgress: (msg: string) => void, onDone: () => void) {
+  for (let i = 0; i < 100; i++) {
+    const r = await fetch("/api/admin/rethumb", { method: "POST" }).then((x) => x.json());
+    if (!r || typeof r.remaining !== "number") break;
+    onProgress(`Đang tạo lại ảnh… còn ${r.remaining}`);
+    if (r.remaining === 0 || r.fixed === 0) break;
+  }
+  onDone();
+}
+
 export default function TopMenu({
   isAdmin,
   onUploaded,
@@ -16,6 +26,7 @@ export default function TopMenu({
   onMusic: () => void;
 }) {
   const [open, setOpen] = useState(false);
+  const [rethumbMsg, setRethumbMsg] = useState("");
 
   return (
     <div className="ow-menu">
@@ -38,6 +49,19 @@ export default function TopMenu({
           {isAdmin && (
             <button className="ow-menu__item" onClick={() => { setOpen(false); onMusic(); }}>
               🎵 Nhạc nền
+            </button>
+          )}
+          {isAdmin && (
+            <button
+              className="ow-menu__item"
+              onClick={() =>
+                rethumbAll(setRethumbMsg, () => {
+                  setRethumbMsg("");
+                  onUploaded();
+                })
+              }
+            >
+              {rethumbMsg || "🖼️ Tạo lại ảnh lỗi"}
             </button>
           )}
           <button className="ow-menu__item ow-menu__item--logout" onClick={() => { setOpen(false); onLogout(); }}>
