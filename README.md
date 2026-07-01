@@ -27,7 +27,11 @@ node -e "console.log(require('bcryptjs').hashSync(process.argv[1],10))" 'matkhau
 ```
 Role: `admin` (upload + sửa/xóa), `viewer` (chỉ xem).
 
-## Deploy (EC2 + Docker + DuckDNS)
+## Deploy
+
+**Hướng dẫn đầy đủ (AWS S3 + IAM + EC2 + Caddy + DuckDNS): xem [`DEPLOY.md`](DEPLOY.md).** Tóm tắt nhanh:
+
+### Deploy (EC2 + Docker + DuckDNS)
 ```bash
 cp .env.example .env        # đặt SITE_ADDRESS=ten.duckdns.org, S3 creds, USERS, AUTH_SECRET
 docker compose up -d --build
