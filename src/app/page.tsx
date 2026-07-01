@@ -3,6 +3,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import dynamic from "next/dynamic";
 import { useRouter } from "next/navigation";
 import { useMapStore } from "@/components/mapStore";
+import { useBigJourney, useSmallJourney } from "@/components/journeyStore";
 import { setMusicTrack } from "@/components/journeyMusic";
 import Stats from "@/components/Stats";
 import OnThisDay from "@/components/OnThisDay";
@@ -26,6 +27,7 @@ export default function Home() {
   const toggleRoute = useMapStore((s) => s.toggleRoute);
   const pendingEnterTripId = useMapStore((s) => s.pendingEnterTripId);
   const enterTrip = useMapStore((s) => s.enterTrip);
+  const journeyActive = useBigJourney((s) => s.playing) || useSmallJourney((s) => s.playing);
 
   const [role, setRole] = useState<"admin" | "viewer" | null>(null);
   const [showFaces, setShowFaces] = useState(false);
@@ -68,7 +70,7 @@ export default function Home() {
   const isAdmin = role === "admin";
 
   return (
-    <div className="ow-app">
+    <div className={`ow-app ${journeyActive ? "ow-app--journey" : ""}`}>
       <WorldMap onPlaced={refresh} />
       <Uploader ref={uploaderRef} onUploaded={refresh} />
 
