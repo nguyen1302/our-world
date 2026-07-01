@@ -189,9 +189,9 @@ Mở **https://ourworld.duckdns.org** → đăng nhập `admin` / mật khẩu b
 
 ## 8. Vận hành
 
-- **Cập nhật code:**
+- **Cập nhật code (thủ công):**
 ```bash
-cd our-world && git pull && docker compose up -d --build
+cd /opt/apps/our-world && bash scripts/deploy.sh   # git pull + rebuild web/worker
 ```
 - **Backup Postgres** (cron hằng ngày lên S3):
 ```bash
@@ -200,6 +200,35 @@ docker compose exec -T postgres pg_dump -U ourworld ourworld | gzip > backup-$(d
 ```
   Ảnh gốc đã nằm sẵn trên S3.
 - **Xem tài nguyên:** `docker stats`. t3.micro yếu → worker xử lý tuần tự; nếu upload nhiều, chờ vài phút.
+
+---
+
+## 8b. CD — tự động deploy khi push lên `main` (GitHub Actions)
+
+Đã có sẵn `.github/workflows/deploy.yml` + `scripts/deploy.sh`. Mỗi khi push lên `main` (hoặc bấm **Run workflow**), GitHub Actions SSH vào EC2 chạy `scripts/deploy.sh` (git pull + rebuild web/worker).
+
+**Bước 1 — Tạo SSH deploy key riêng (trên máy cá nhân):**
+```bash
+ssh-keygen -t ed25519 -f ~/.ssh/ourworld_deploy -N "" -C "github-actions deploy"
+```
+Copy **public key** lên EC2 (cho phép nó SSH vào):
+```bash
+ssh-copy-id -i ~/.ssh/ourworld_deploy.pub ubuntu@<EC2_IP>
+# hoặc thủ công: dán nội dung .pub vào ~/.ssh/authorized_keys trên EC2
+```
+
+**Bước 2 — Thêm GitHub Secrets** (repo → Settings → Secrets and variables → Actions → New repository secret):
+| Secret | Giá trị |
+|---|---|
+| `EC2_HOST` | IP EC2 (vd `3.27.111.225`) |
+| `EC2_USER` | `ubuntu` |
+| `EC2_SSH_KEY` | **toàn bộ nội dung file private** `~/.ssh/ourworld_deploy` (kể cả dòng BEGIN/END) |
+| `APP_DIR` | `/opt/apps/our-world` (tuỳ chọn, mặc định đã đúng) |
+| `EC2_PORT` | `22` (tuỳ chọn) |
+
+**Bước 3 — Kiểm tra:** push 1 commit lên `main` → tab **Actions** của repo → job **Deploy to EC2** phải xanh. Xong, từ giờ `git push` là tự deploy.
+
+> Lưu ý: build chạy **trên EC2** (đã có swap 2GB). Nếu muốn nhẹ hơn nữa có thể build image ở nơi khác rồi push registry — chưa cần ở giai đoạn này.
 
 ---
 
