@@ -145,6 +145,9 @@ body { font-family: var(--sans); -webkit-font-smoothing: antialiased; text-rende
 .ow-gallery { margin-top: 11px; display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; }
 .ow-gallery div { position: relative; padding-bottom: 100%; border-radius: 9px; overflow: hidden; cursor: zoom-in; background: rgba(240,235,220,.06); }
 .ow-gallery img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+.ow-card__ride { display: flex; align-items: center; justify-content: center; gap: 8px; width: 100%; margin-top: 16px; padding: 11px; border: none; border-radius: 12px; cursor: pointer; font-weight: 600; font-family: var(--sans); color: #1a1310; background: linear-gradient(135deg, var(--gold), var(--rose)); box-shadow: 0 6px 18px rgba(233,184,114,.28); }
+.ow-place { border-radius: 12px; padding: 4px 6px; margin: 0 -6px; transition: background .3s, box-shadow .3s; }
+.ow-place--active { background: rgba(233,184,114,.1); box-shadow: inset 0 0 0 1px rgba(233,184,114,.4); }
 .ow-card__actions { display: flex; gap: 8px; margin-top: 14px; }
 .ow-card__actions button { background: linear-gradient(135deg, var(--gold), var(--rose)); color: #1a1310; border: none; border-radius: 10px; padding: 9px 16px; cursor: pointer; font-weight: 600; font-family: var(--sans); }
 .ow-card__actions .ow-danger { background: none; color: var(--rose); border: 1px solid rgba(217,134,149,.5); }

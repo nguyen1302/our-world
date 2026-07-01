@@ -42,6 +42,8 @@ export async function GET(_req: NextRequest, { params }: { params: { id: string 
         title: p.title,
         placeName: p.placeName,
         city: p.city,
+        lat: p.lat,
+        lng: p.lng,
         startAt: p.startAt,
         endAt: p.endAt,
         photos: gallery,

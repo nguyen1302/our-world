@@ -16,6 +16,7 @@ export default function TimelineBar() {
   const [zoom, setZoom] = useState(1);
 
   const playing = useJourney((s) => s.playing);
+  const mode = useJourney((s) => s.mode);
   const phase = useJourney((s) => s.phase);
   const jIndex = useJourney((s) => s.index);
   const progress = useJourney((s) => s.progress);
@@ -60,7 +61,7 @@ export default function TimelineBar() {
   useEffect(() => {
     const veh = vehRef.current;
     const track = trackRef.current;
-    if (!veh || !track || !geom || !playing) {
+    if (!veh || !track || !geom || !playing || mode !== "trips") {
       if (veh) veh.style.display = "none";
       return;
     }
@@ -85,7 +86,7 @@ export default function TimelineBar() {
     veh.style.transform = `translate(${x - 26}px,0) scaleX(${flip ? -1 : 1})`;
     veh.innerHTML = `<div class="ow-bob" style="width:100%;height:100%">${vehicleSvg(type, faces, { id: "tlv" })}</div>`;
     track.scrollLeft = x - track.clientWidth / 2;
-  }, [playing, phase, jIndex, progress, ord, geom, faces]);
+  }, [playing, mode, phase, jIndex, progress, ord, geom, faces]);
 
   const rangeLabel = ord.length ? `${ord[0].startAt.slice(0, 4)} – ${ord[ord.length - 1].startAt.slice(0, 4)}` : "";
 
@@ -100,7 +101,10 @@ export default function TimelineBar() {
         <span className="ow-tl-range">{rangeLabel}</span>
         <div className="ow-tl-spacer" />
         {ord.length > 1 && !playing && (
-          <button className="ow-tl-play" onClick={() => startJourney(ord.length)}>
+          <button
+            className="ow-tl-play"
+            onClick={() => startJourney(ord.map((m) => ({ id: m.id, lat: m.lat, lng: m.lng, title: m.title })), "trips")}
+          >
             <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M7 5v14l12-7z" /></svg>
             Chuyến đi
           </button>

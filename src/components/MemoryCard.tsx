@@ -1,12 +1,15 @@
 "use client";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useMapStore } from "./mapStore";
+import { useJourney } from "./journeyStore";
 
 interface Place {
   id: string;
   title: string;
   placeName: string | null;
   city: string | null;
+  lat: number;
+  lng: number;
   startAt: string;
   endAt: string;
   photos: { id: string; thumbUrl: string | null }[];
@@ -38,6 +41,10 @@ function dateRange(a: string, b: string): string {
 export default function MemoryCard({ isAdmin, onChanged }: { isAdmin: boolean; onChanged: () => void }) {
   const selectedId = useMapStore((s) => s.selectedId);
   const closeDetail = useMapStore((s) => s.closeDetail);
+  const startJourney = useJourney((s) => s.start);
+  const journeyPlaying = useJourney((s) => s.playing);
+  const activePlaceId = useJourney((s) => s.activePlaceId);
+  const placeRefs = useRef<Record<string, HTMLDivElement | null>>({});
   const [detail, setDetail] = useState<Detail | null>(null);
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
@@ -65,7 +72,22 @@ export default function MemoryCard({ isAdmin, onChanged }: { isAdmin: boolean; o
 
   const allPhotos = useMemo(() => (detail ? detail.places.flatMap((p) => p.photos) : []), [detail]);
 
+  // during a place-journey, scroll the active place into view
+  useEffect(() => {
+    if (activePlaceId && placeRefs.current[activePlaceId]) {
+      placeRefs.current[activePlaceId]!.scrollIntoView({ behavior: "smooth", block: "center" });
+    }
+  }, [activePlaceId]);
+
   if (!selectedId) return null;
+
+  function rideTrip() {
+    if (!detail) return;
+    const stops = detail.places
+      .filter((p) => typeof p.lat === "number")
+      .map((p) => ({ id: p.id, lat: p.lat, lng: p.lng, title: p.placeName || p.title }));
+    if (stops.length > 1) startJourney(stops, "places");
+  }
 
   async function patch(body: object) {
     await fetch(`/api/memories/${selectedId}`, {
@@ -162,6 +184,13 @@ export default function MemoryCard({ isAdmin, onChanged }: { isAdmin: boolean; o
               desc && <p className="ow-card__desc">{desc}</p>
             )}
 
+            {multiPlace && !journeyPlaying && (
+              <button className="ow-card__ride" onClick={rideTrip}>
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor"><path d="M7 5v14l12-7z" /></svg>
+                Đi trong chuyến bằng xe máy ({detail.places.length} nơi)
+              </button>
+            )}
+
             {/* Places within the trip */}
             {(() => {
               let offset = 0;
@@ -169,7 +198,13 @@ export default function MemoryCard({ isAdmin, onChanged }: { isAdmin: boolean; o
                 const base = offset;
                 offset += p.photos.length;
                 return (
-                  <div key={p.id}>
+                  <div
+                    key={p.id}
+                    ref={(el) => {
+                      placeRefs.current[p.id] = el;
+                    }}
+                    className={`ow-place ${activePlaceId === p.id ? "ow-place--active" : ""}`}
+                  >
                     <div className="ow-card__albumlabel">
                       {multiPlace ? `${p.placeName || p.title} · ${p.photos.length} ảnh` : `Album · ${p.photos.length} ảnh`}
                     </div>

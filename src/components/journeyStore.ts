@@ -2,9 +2,16 @@
 import { create } from "zustand";
 
 export interface Faces {
-  a: string | null; // data URL (cropped circular face)
+  a: string | null;
   b: string | null;
 }
+export interface Stop {
+  id: string;
+  lat: number;
+  lng: number;
+  title: string;
+}
+export type JourneyMode = "trips" | "places";
 
 function loadFaces(): Faces {
   if (typeof window === "undefined") return { a: null, b: null };
@@ -17,34 +24,41 @@ function loadFaces(): Faces {
 
 interface JourneyState {
   playing: boolean;
-  total: number;
-  index: number; // current stop (paused) or source stop (moving)
+  mode: JourneyMode;
+  stops: Stop[];
+  index: number;
   phase: "paused" | "moving";
-  progress: number; // 0..1 within the current moving segment
+  progress: number;
   faces: Faces;
+  /** In 'places' mode, the place currently being shown (for the card to scroll/highlight). */
+  activePlaceId: string | null;
 
-  start: (total: number) => void;
+  start: (stops: Stop[], mode: JourneyMode) => void;
   exit: () => void;
   next: () => void;
   setProgress: (p: number) => void;
   arrive: () => void;
   setFaces: (faces: Faces) => void;
+  setActivePlace: (id: string | null) => void;
 }
 
 export const useJourney = create<JourneyState>((set, get) => ({
   playing: false,
-  total: 0,
+  mode: "trips",
+  stops: [],
   index: 0,
   phase: "paused",
   progress: 0,
   faces: loadFaces(),
+  activePlaceId: null,
 
-  start: (total) => set({ playing: true, total, index: 0, phase: "paused", progress: 0 }),
-  exit: () => set({ playing: false, phase: "paused", progress: 0, index: 0 }),
+  start: (stops, mode) =>
+    set({ playing: true, mode, stops, index: 0, phase: "paused", progress: 0, activePlaceId: null }),
+  exit: () => set({ playing: false, phase: "paused", progress: 0, index: 0, activePlaceId: null }),
   next: () => {
-    const { index, total } = get();
-    if (index >= total - 1) {
-      set({ playing: false, phase: "paused", progress: 0, index: 0 });
+    const { index, stops } = get();
+    if (index >= stops.length - 1) {
+      set({ playing: false, phase: "paused", progress: 0, index: 0, activePlaceId: null });
     } else {
       set({ phase: "moving", progress: 0 });
     }
@@ -59,6 +73,7 @@ export const useJourney = create<JourneyState>((set, get) => ({
     }
     set({ faces });
   },
+  setActivePlace: (id) => set({ activePlaceId: id }),
 }));
 
 export function haversineKm(a: { lat: number; lng: number }, b: { lat: number; lng: number }): number {
@@ -71,7 +86,6 @@ export function haversineKm(a: { lat: number; lng: number }, b: { lat: number; l
   return 2 * R * Math.asin(Math.sqrt(h));
 }
 
-/** Pick the vehicle for a segment based on great-circle distance (km). */
 export function vehicleForDistance(km: number): "bike" | "car" | "plane" {
   if (km < 25) return "bike";
   if (km < 250) return "car";

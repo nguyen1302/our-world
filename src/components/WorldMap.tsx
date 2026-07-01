@@ -72,10 +72,7 @@ function FocusController() {
   return null;
 }
 
-function orderedStops(memories: MemoryMarker[]): MemoryMarker[] {
-  return [...memories].sort((a, b) => a.startAt.localeCompare(b.startAt));
-}
-function segVehicle(stops: MemoryMarker[], i: number): VehicleType {
+function segVehicle(stops: { lat: number; lng: number }[], i: number): VehicleType {
   const a = stops[i];
   const b = stops[i + 1];
   if (!a || !b) return "bike";
@@ -84,16 +81,17 @@ function segVehicle(stops: MemoryMarker[], i: number): VehicleType {
 
 function JourneyController() {
   const map = useMap();
-  const memories = useMapStore((s) => s.memories);
   const setSelected = useMapStore((s) => s.setSelected);
   const playing = useJourney((s) => s.playing);
+  const mode = useJourney((s) => s.mode);
+  const stops = useJourney((s) => s.stops);
   const phase = useJourney((s) => s.phase);
   const index = useJourney((s) => s.index);
   const faces = useJourney((s) => s.faces);
   const setProgress = useJourney((s) => s.setProgress);
   const arrive = useJourney((s) => s.arrive);
+  const setActivePlace = useJourney((s) => s.setActivePlace);
 
-  const stops = useMemo(() => orderedStops(memories), [memories]);
   const markerRef = useRef<L.Marker | null>(null);
   const fxRef = useRef<HTMLDivElement | null>(null);
   const rafRef = useRef<number>(0);
@@ -163,13 +161,16 @@ function JourneyController() {
     if (phase === "paused") {
       const s = stops[index];
       if (!s) return;
-      setSelected(s.id);
-      map.flyTo([s.lat, s.lng], index === 0 ? 12 : 12, { duration: 1.4, easeLinearity: 0.2 });
+      if (mode === "trips") setSelected(s.id);
+      else setActivePlace(s.id);
+      const pausedZoom = mode === "places" ? 15 : 12;
+      map.flyTo([s.lat, s.lng], pausedZoom, { duration: 1.4, easeLinearity: 0.2 });
       place(s.lat, s.lng, segVehicle(stops, Math.max(0, index - 1)), false);
       return;
     }
 
-    setSelected(null);
+    if (mode === "trips") setSelected(null);
+    else setActivePlace(null);
     const from = stops[index];
     const to = stops[index + 1];
     if (!to) return;
@@ -210,7 +211,7 @@ function JourneyController() {
 
     return cancel;
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [playing, phase, index, stops, faces, map]);
+  }, [playing, phase, index, stops, mode, faces, map]);
 
   return null;
 }
