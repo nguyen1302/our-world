@@ -105,6 +105,19 @@ newgrp docker   # hoặc logout/login lại
 docker --version && docker compose version
 ```
 
+### ⚠️ 5.1 Tạo swap 2GB — BẮT BUỘC trên máy 1GB RAM
+
+`next build` (type-check) ngốn RAM. EC2 t3.micro/t2.micro chỉ có **1GB RAM, không swap** → lúc build sẽ **hết RAM, treo SSH, instance kẹt ở `Stopping`** (phải **Force Stop**, Start lại, chờ **Status checks 2/2 Passed** mới SSH được). Tạo swap **trước khi build**:
+
+```bash
+sudo fallocate -l 2G /swapfile
+sudo chmod 600 /swapfile
+sudo mkswap /swapfile
+sudo swapon /swapfile
+echo '/swapfile none swap sw 0 0' | sudo tee -a /etc/fstab   # tự bật lại sau reboot
+free -h   # kiểm tra: dòng Swap phải hiện 2.0Gi
+```
+
 ---
 
 ## 6. Lấy code + cấu hình `.env`
@@ -120,14 +133,16 @@ cp .env.example .env
 # AUTH_SECRET
 openssl rand -base64 48
 
-# Bcrypt hash cho mật khẩu (chạy trong image, không cần cài node):
-docker compose run --rm web node -e "console.log(require('bcryptjs').hashSync('MAT_KHAU_CUA_BAN',10))"
+# Bcrypt hash cho mật khẩu — dùng container node tạm, KHÔNG build app image
+# (⚠️ đừng dùng `docker compose run web ...` — nó sẽ build cả image và OOM trên 1GB RAM).
+docker run --rm node:22-slim sh -lc \
+  "npm i bcryptjs >/dev/null 2>&1 && node -e \"console.log(require('bcryptjs').hashSync('MAT_KHAU_CUA_BAN',10))\""
 ```
 
 Sửa `.env` (dùng `nano .env`):
 ```bash
 DATABASE_URL=postgres://ourworld:ourworld@postgres:5432/ourworld
-AUTH_SECRET=<chuỗi từ openssl>
+AUTH_SECRET=krQcc0nMBdTe2OzFuftlITDvBsZNnNsadtlASaKE3j0Fdtj01AcKh2FeeLEmZVB3
 DEFAULT_SPACE_ID=00000000-0000-0000-0000-000000000001
 
 # ⚠️ Docker Compose nuốt ký tự $ trong env_file → PHẢI double mỗi "$" thành "$$" trong hash.
@@ -192,6 +207,7 @@ docker compose exec -T postgres pg_dump -U ourworld ourworld | gzip > backup-$(d
 
 | Triệu chứng | Nguyên nhân / cách sửa |
 |---|---|
+| SSH lag rồi mất kết nối lúc build; instance kẹt `Stopping` | Hết RAM (OOM) do build không có swap. **Force Stop** → Start → chờ **Status checks 2/2** → SSH lại → tạo swap (mục 5.1) trước khi build lại. Build đã cap heap 896MB + bỏ ESLint để nhẹ hơn. |
 | Đăng nhập luôn sai | Chưa double `$` → `$$` trong `USERS`. Kiểm tra: `docker compose exec web sh -c 'echo "$USERS"'` phải thấy hash đầy đủ `$2a$10$...` |
 | Upload ảnh lỗi (CORS) | Thiếu/khác domain trong CORS của S3 (mục 1.2) — phải khớp `https://<domain>` |
 | Caddy không cấp được HTTPS | Domain chưa trỏ đúng IP, hoặc cổng 80/443 chưa mở trong Security Group |
