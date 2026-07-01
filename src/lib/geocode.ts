@@ -2,6 +2,7 @@ import { sql } from "drizzle-orm";
 import { db } from "@/db";
 import { getConfig } from "./config";
 import { resolveProvinceCode, resolveProvinceFromIso } from "./provinces";
+import { pointProvince } from "./provincesGeo";
 
 export interface GeoResult {
   country: string | null;
@@ -63,13 +64,30 @@ export async function reverseGeocode(
     };
   }
 
+  // Offline province (point-in-polygon) — always works, no network needed.
+  const off = pointProvince(lat, lng);
+  let result: GeoResult = off
+    ? { country: "Việt Nam", city: off.name, placeName: off.name, provinceCode: off.code }
+    : { country: null, city: null, placeName: null, provinceCode: null };
+
+  // Best-effort finer names from Nominatim (short timeout); don't let it block/fail the result.
   const url = `${config.nominatimBaseUrl}/reverse?format=jsonv2&lat=${lat}&lon=${lng}&accept-language=vi`;
-  let result: GeoResult = { country: null, city: null, placeName: null, provinceCode: null };
   try {
-    const res = await fetchFn(url, { headers: { "User-Agent": config.nominatimUserAgent } });
-    if (res.ok) result = parseNominatim(await res.json());
+    const ctrl = new AbortController();
+    const t = setTimeout(() => ctrl.abort(), 5000);
+    const res = await fetchFn(url, { headers: { "User-Agent": config.nominatimUserAgent }, signal: ctrl.signal });
+    clearTimeout(t);
+    if (res.ok) {
+      const fine = parseNominatim(await res.json());
+      result = {
+        country: fine.country ?? result.country,
+        city: fine.city ?? result.city,
+        placeName: fine.placeName ?? result.placeName,
+        provinceCode: fine.provinceCode ?? result.provinceCode, // prefer offline if Nominatim can't map
+      };
+    }
   } catch {
-    // leave as nulls; worker still stores coords
+    // keep the offline result
   }
 
   await db.execute(

@@ -2,8 +2,18 @@ function pad(n: number): string {
   return n < 10 ? `0${n}` : String(n);
 }
 
+// Format calendar day/month/year in Vietnam time, so server (UTC) and browser
+// (UTC+7) always show the same date — no off-by-one near midnight.
+export const VN_TZ = "Asia/Ho_Chi_Minh";
 function dmy(d: Date): { day: number; month: number; year: number } {
-  return { day: d.getUTCDate(), month: d.getUTCMonth() + 1, year: d.getUTCFullYear() };
+  const parts = new Intl.DateTimeFormat("en-GB", {
+    timeZone: VN_TZ,
+    day: "2-digit",
+    month: "2-digit",
+    year: "numeric",
+  }).formatToParts(d);
+  const get = (t: string) => Number(parts.find((p) => p.type === t)!.value);
+  return { day: get("day"), month: get("month"), year: get("year") };
 }
 
 export function formatDateRange(startAt: Date, endAt: Date): string {

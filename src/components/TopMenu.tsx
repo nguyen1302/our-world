@@ -63,6 +63,20 @@ export default function TopMenu({
               {rethumbMsg || "🖼️ Tạo lại ảnh lỗi"}
             </button>
           )}
+          {isAdmin && (
+            <button
+              className="ow-menu__item"
+              onClick={async () => {
+                setRethumbMsg("Đang cập nhật tỉnh…");
+                await fetch("/api/admin/backfill", { method: "POST" }).catch(() => {});
+                setRethumbMsg("");
+                setOpen(false);
+                onUploaded();
+              }}
+            >
+              📍 Cập nhật tỉnh thành
+            </button>
+          )}
           <button className="ow-menu__item ow-menu__item--logout" onClick={() => { setOpen(false); onLogout(); }}>
             ⎋ Đăng xuất
           </button>

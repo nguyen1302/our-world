@@ -4,12 +4,25 @@ import { createPortal } from "react-dom";
 import { useMapStore, type Place } from "./mapStore";
 import { useSmallJourney } from "./journeyStore";
 
+// Vietnam-time parts, matching the server-generated titles (no off-by-one).
+function vnParts(iso: string) {
+  const p = new Intl.DateTimeFormat("en-GB", {
+    timeZone: "Asia/Ho_Chi_Minh",
+    day: "numeric",
+    month: "numeric",
+    year: "numeric",
+  }).formatToParts(new Date(iso));
+  const g = (t: string) => p.find((x) => x.type === t)!.value;
+  return { d: g("day"), m: g("month"), y: g("year") };
+}
 function fmtFull(iso: string): string {
-  const d = new Date(iso);
-  return `${d.getDate()} Tháng ${d.getMonth() + 1}, ${d.getFullYear()}`;
+  const { d, m, y } = vnParts(iso);
+  return `${d} Tháng ${m}, ${y}`;
 }
 function dateRange(a: string, b: string): string {
-  if (new Date(a).toDateString() === new Date(b).toDateString()) return fmtFull(a);
+  const pa = vnParts(a);
+  const pb = vnParts(b);
+  if (pa.d === pb.d && pa.m === pb.m && pa.y === pb.y) return fmtFull(a);
   return `${fmtFull(a)} – ${fmtFull(b)}`;
 }
 
