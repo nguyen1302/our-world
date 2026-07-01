@@ -1,5 +1,6 @@
 "use client";
 import { useCallback, useEffect, useState } from "react";
+import { createPortal } from "react-dom";
 import { useMapStore } from "./mapStore";
 
 interface UnplacedPhoto {
@@ -15,6 +16,8 @@ export default function UnplacedPanel({ version }: { version: number }) {
   const [items, setItems] = useState<UnplacedPhoto[]>([]);
   const [open, setOpen] = useState(false);
   const [sel, setSel] = useState<Set<string>>(new Set());
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => setMounted(true), []);
 
   const load = useCallback(async () => {
     const d = await fetch("/api/unplaced").then((r) => r.json());
@@ -33,14 +36,17 @@ export default function UnplacedPanel({ version }: { version: number }) {
     });
   }
 
-  // placing banner (map click assigns location to all selected)
+  // placing banner (map click assigns location to all selected) — portal to body
+  // so it isn't trapped by the topbar's backdrop-filter containing block.
   if (placingPhotoIds.length > 0) {
-    return (
+    if (!mounted) return null;
+    return createPortal(
       <div className="ow-placing">
         <span className="ow-placing__dot" />
         Bấm lên bản đồ để đặt vị trí cho {placingPhotoIds.length} ảnh
         <button onClick={cancelPlacing}>Huỷ</button>
-      </div>
+      </div>,
+      document.body,
     );
   }
 
@@ -52,7 +58,7 @@ export default function UnplacedPanel({ version }: { version: number }) {
         📍 Chưa định vị <b>{items.length}</b>
       </button>
 
-      {open && (
+      {open && mounted && createPortal(
         <div className="ow-modal" onClick={() => setOpen(false)}>
           <div className="ow-modal__box ow-modal__box--wide" onClick={(e) => e.stopPropagation()}>
             <button className="ow-card__close" onClick={() => setOpen(false)}>✕</button>
@@ -85,7 +91,8 @@ export default function UnplacedPanel({ version }: { version: number }) {
               </button>
             </div>
           </div>
-        </div>
+        </div>,
+        document.body,
       )}
     </>
   );
