@@ -11,12 +11,16 @@ function Panel({
   store,
   variant,
   stepWord,
+  badge,
+  icon,
   onNext,
   onExit,
 }: {
   store: JourneyStore;
   variant: "big" | "small";
   stepWord: string;
+  badge: string;
+  icon: string;
   onNext: () => void;
   onExit: () => void;
 }) {
@@ -33,7 +37,11 @@ function Panel({
   const status = paused ? cur?.title ?? "" : `Đang đến ${nextStop?.title ?? ""}`;
 
   return (
-    <div className={`ow-journey ${variant === "small" ? "ow-journey--small" : ""}`}>
+    <div className={`ow-journey ow-journey--${variant}`}>
+      <div className="ow-journey__badge">
+        <span className="ow-journey__badge-ic">{icon}</span>
+        {badge}
+      </div>
       <div className="ow-journey__exit" onClick={onExit}>
         <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M6 6l12 12M18 6L6 18" /></svg>
         Thoát
@@ -63,12 +71,13 @@ export default function JourneyControls() {
   const exitTrip = useMapStore((s) => s.exitTrip);
   const backToTrip = useMapStore((s) => s.backToTrip);
 
-  // one soundtrack shared by both journeys (play if either runs)
+  // one soundtrack shared by both journeys — start once, stop only when BOTH stop
+  // (startMusic is idempotent, so toggling the small panel won't restart it)
   useEffect(() => {
     if (bigPlaying || smallPlaying) startMusic();
     else stopMusic();
-    return () => stopMusic();
   }, [bigPlaying, smallPlaying]);
+  useEffect(() => () => stopMusic(), []);
 
   function bigNext() {
     // pressing big "Tiếp" abandons any small ride and moves to the next big mốc
@@ -90,8 +99,8 @@ export default function JourneyControls() {
 
   return (
     <>
-      {bigPlaying && <Panel store={useBigJourney} variant="big" stepWord="Chặng" onNext={bigNext} onExit={bigExit} />}
-      {smallPlaying && <Panel store={useSmallJourney} variant="small" stepWord="Điểm" onNext={smallNext} onExit={smallExit} />}
+      {bigPlaying && <Panel store={useBigJourney} variant="big" badge="Mốc lớn · Chuyến đi" icon="✦" stepWord="Chặng" onNext={bigNext} onExit={bigExit} />}
+      {smallPlaying && <Panel store={useSmallJourney} variant="small" badge="Mốc nhỏ · Trong chuyến" icon="↳" stepWord="Điểm" onNext={smallNext} onExit={smallExit} />}
     </>
   );
 }

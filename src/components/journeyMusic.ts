@@ -11,6 +11,7 @@ type Audio = {
 
 let audio: Audio | null = null;
 let muted = false;
+let running = false;
 let trackUrl: string | null = null;
 let trackEl: HTMLAudioElement | null = null;
 
@@ -61,6 +62,8 @@ function tick() {
 }
 
 export function startMusic() {
+  if (running) return; // already playing — don't restart (avoids stutter when panels toggle)
+  running = true;
   // Prefer the user's uploaded song; fall back to the generated tune.
   if (trackUrl) {
     try {
@@ -104,6 +107,7 @@ export function startMusic() {
 }
 
 export function stopMusic() {
+  running = false;
   if (trackEl) {
     try {
       trackEl.pause();

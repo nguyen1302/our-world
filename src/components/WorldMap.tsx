@@ -295,16 +295,16 @@ function JourneyController() {
 
 export default function WorldMap() {
   const memories = useMapStore((s) => s.memories);
-  const focusedTripId = useMapStore((s) => s.focusedTripId);
-  const tripDetail = useMapStore((s) => s.tripDetail);
   const showRoute = useMapStore((s) => s.showRoute);
 
-  const routePoints = useMemo(() => {
-    const src = focusedTripId && tripDetail ? tripDetail.places : memories;
-    return [...src]
-      .sort((a, b) => a.startAt.localeCompare(b.startAt))
-      .map((m) => [m.lat, m.lng] as [number, number]);
-  }, [memories, focusedTripId, tripDetail]);
+  // stable route = the journey between trips (doesn't blink when drilling in/out)
+  const routePoints = useMemo(
+    () =>
+      [...memories]
+        .sort((a, b) => a.startAt.localeCompare(b.startAt))
+        .map((m) => [m.lat, m.lng] as [number, number]),
+    [memories],
+  );
 
   return (
     <MapContainer center={VN_CENTER} zoom={VN_ZOOM} className="ow-map" scrollWheelZoom zoomControl={false} preferCanvas>
