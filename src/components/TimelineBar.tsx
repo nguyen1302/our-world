@@ -131,12 +131,10 @@ export default function TimelineBar() {
                   <div className="ow-tlbead__thumb">
                     <img src={b.cover ?? ""} alt="" loading="lazy" />
                   </div>
-                  {/* only the active bead shows its date → no more overlapping labels */}
-                  {active && (
-                    <div className="ow-tlbead__label">
-                      {Number(b.startAt.slice(8, 10))}/{Number(b.startAt.slice(5, 7))}
-                    </div>
-                  )}
+                  {/* always show day/month (NOT year — year lives in the divider) */}
+                  <div className="ow-tlbead__label">
+                    {Number(b.startAt.slice(8, 10))}/{Number(b.startAt.slice(5, 7))}
+                  </div>
                 </div>
               );
             })}
