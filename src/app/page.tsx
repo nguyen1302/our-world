@@ -27,7 +27,10 @@ export default function Home() {
   const toggleRoute = useMapStore((s) => s.toggleRoute);
   const pendingEnterTripId = useMapStore((s) => s.pendingEnterTripId);
   const enterTrip = useMapStore((s) => s.enterTrip);
-  const journeyActive = useBigJourney((s) => s.playing) || useSmallJourney((s) => s.playing);
+  // NOTE: call both hooks unconditionally (|| would short-circuit the 2nd hook → Rules of Hooks crash)
+  const bigPlaying = useBigJourney((s) => s.playing);
+  const smallPlaying = useSmallJourney((s) => s.playing);
+  const journeyActive = bigPlaying || smallPlaying;
 
   const [role, setRole] = useState<"admin" | "viewer" | null>(null);
   const [showFaces, setShowFaces] = useState(false);
