@@ -1,5 +1,5 @@
 "use client";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import dynamic from "next/dynamic";
 import { useRouter } from "next/navigation";
 import { useMapStore } from "@/components/mapStore";
@@ -13,6 +13,7 @@ import JourneyControls from "@/components/JourneyControls";
 import FaceModal from "@/components/FaceModal";
 import MusicModal from "@/components/MusicModal";
 import UnplacedPanel from "@/components/UnplacedPanel";
+import Uploader, { type UploaderHandle } from "@/components/Uploader";
 
 const WorldMap = dynamic(() => import("@/components/WorldMap"), { ssr: false });
 
@@ -30,6 +31,7 @@ export default function Home() {
   const [showFaces, setShowFaces] = useState(false);
   const [showMusic, setShowMusic] = useState(false);
   const [dataVersion, setDataVersion] = useState(0);
+  const uploaderRef = useRef<UploaderHandle>(null);
 
   const refresh = useCallback(async () => {
     const [m, sc, st] = await Promise.all([
@@ -68,6 +70,7 @@ export default function Home() {
   return (
     <div className="ow-app">
       <WorldMap onPlaced={refresh} />
+      <Uploader ref={uploaderRef} onUploaded={refresh} />
 
       <header className="ow-topbar">
         <div className="ow-brand">
@@ -92,6 +95,7 @@ export default function Home() {
             onLogout={logout}
             onFaces={() => setShowFaces(true)}
             onMusic={() => setShowMusic(true)}
+            onImport={() => uploaderRef.current?.open()}
           />
         </div>
       </header>

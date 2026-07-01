@@ -1,6 +1,5 @@
 "use client";
 import { useState } from "react";
-import UploadButton from "./UploadButton";
 
 async function rethumbAll(onProgress: (msg: string) => void, onDone: () => void) {
   for (let i = 0; i < 100; i++) {
@@ -18,12 +17,14 @@ export default function TopMenu({
   onLogout,
   onFaces,
   onMusic,
+  onImport,
 }: {
   isAdmin: boolean;
   onUploaded: () => void;
   onLogout: () => void;
   onFaces: () => void;
   onMusic: () => void;
+  onImport: () => void;
 }) {
   const [open, setOpen] = useState(false);
   const [rethumbMsg, setRethumbMsg] = useState("");
@@ -37,11 +38,9 @@ export default function TopMenu({
       {open && (
         <div className="ow-menu__pop">
           {isAdmin && (
-            /* NOTE: do NOT close the menu here — closing unmounts UploadButton
-               before the file dialog / onChange runs, so nothing uploads. */
-            <div className="ow-menu__row">
-              <UploadButton onUploaded={onUploaded} />
-            </div>
+            <button className="ow-menu__item" onClick={() => { setOpen(false); onImport(); }}>
+              ⬆️ Import Photos
+            </button>
           )}
           <button className="ow-menu__item" onClick={() => { setOpen(false); onFaces(); }}>
             💕 Ghép mặt vào phương tiện

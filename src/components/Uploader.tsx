@@ -1,5 +1,5 @@
 "use client";
-import { useEffect, useRef, useState } from "react";
+import { forwardRef, useEffect, useImperativeHandle, useRef, useState } from "react";
 
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
@@ -11,12 +11,11 @@ async function putWithRetry(url: string, file: File, contentType: string, tries 
     } catch {
       /* network hiccup — retry */
     }
-    await sleep(800 * (attempt + 1)); // backoff
+    await sleep(800 * (attempt + 1));
   }
   return false;
 }
 
-// Run tasks with limited concurrency (gentle on mobile + the small server).
 async function pool<T>(items: T[], size: number, fn: (item: T, i: number) => Promise<void>) {
   let next = 0;
   const workers = Array.from({ length: Math.min(size, items.length) }, async () => {
@@ -28,13 +27,22 @@ async function pool<T>(items: T[], size: number, fn: (item: T, i: number) => Pro
   await Promise.all(workers);
 }
 
-export default function UploadButton({ onUploaded }: { onUploaded: () => void }) {
+export interface UploaderHandle {
+  open: () => void;
+}
+
+/**
+ * Page-level uploader — stays mounted regardless of the menu, so opening/closing
+ * the menu (or navigating the UI) never interrupts an in-progress import.
+ */
+const Uploader = forwardRef<UploaderHandle, { onUploaded: () => void }>(function Uploader({ onUploaded }, ref) {
   const inputRef = useRef<HTMLInputElement>(null);
   const [busy, setBusy] = useState(false);
   const [progress, setProgress] = useState("");
   const wakeRef = useRef<any>(null);
 
-  // keep the screen awake while uploading; re-acquire when tab becomes visible again
+  useImperativeHandle(ref, () => ({ open: () => inputRef.current?.click() }));
+
   useEffect(() => {
     async function onVisible() {
       if (document.visibilityState === "visible" && busy) {
@@ -62,7 +70,7 @@ export default function UploadButton({ onUploaded }: { onUploaded: () => void })
       const total = images.length;
       let done = 0;
       let failed = 0;
-      const CHUNK = 40; // presign limit is 80; keep requests small
+      const CHUNK = 40;
 
       for (let c = 0; c < images.length; c += CHUNK) {
         const chunk = images.slice(c, c + CHUNK);
@@ -77,7 +85,6 @@ export default function UploadButton({ onUploaded }: { onUploaded: () => void })
           return;
         }
 
-        // upload 3 at a time; save EACH photo right after its bytes land (durable)
         await pool(chunk, 3, async (file, i) => {
           const item = presign.items[i];
           const ok = await putWithRetry(item.url, file, item.contentType);
@@ -97,7 +104,6 @@ export default function UploadButton({ onUploaded }: { onUploaded: () => void })
 
       if (failed > 0) alert(`${failed}/${total} ảnh tải lỗi (mạng?) — thử lại các ảnh đó sau.`);
 
-      // let the worker process, refresh the map a few times
       setProgress("Đang xử lý…");
       for (let i = 0; i < 8; i++) {
         await sleep(2500);
@@ -115,10 +121,7 @@ export default function UploadButton({ onUploaded }: { onUploaded: () => void })
   }
 
   return (
-    <div className="ow-upload">
-      <button disabled={busy} onClick={() => inputRef.current?.click()}>
-        {busy ? progress || "Đang xử lý…" : "Import Photos"}
-      </button>
+    <>
       <input
         ref={inputRef}
         type="file"
@@ -127,6 +130,9 @@ export default function UploadButton({ onUploaded }: { onUploaded: () => void })
         hidden
         onChange={(e) => e.target.files && handleFiles(e.target.files)}
       />
-    </div>
+      {busy && <div className="ow-uptoast">⬆️ {progress || "Đang tải…"}</div>}
+    </>
   );
-}
+});
+
+export default Uploader;
