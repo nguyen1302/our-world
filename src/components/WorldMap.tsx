@@ -83,7 +83,6 @@ function JourneyController() {
   const map = useMap();
   const setSelected = useMapStore((s) => s.setSelected);
   const playing = useJourney((s) => s.playing);
-  const mode = useJourney((s) => s.mode);
   const stops = useJourney((s) => s.stops);
   const phase = useJourney((s) => s.phase);
   const index = useJourney((s) => s.index);
@@ -161,16 +160,16 @@ function JourneyController() {
     if (phase === "paused") {
       const s = stops[index];
       if (!s) return;
-      if (mode === "trips") setSelected(s.id);
-      else setActivePlace(s.id);
-      const pausedZoom = mode === "places" ? 15 : 12;
-      map.flyTo([s.lat, s.lng], pausedZoom, { duration: 1.4, easeLinearity: 0.2 });
+      // open the trip this place belongs to (only when it changes), highlight the place
+      const curTrip = useMapStore.getState().selectedId;
+      if (s.tripId && s.tripId !== curTrip) setSelected(s.tripId);
+      setActivePlace(s.id);
+      map.flyTo([s.lat, s.lng], 14, { duration: 1.3, easeLinearity: 0.2 });
       place(s.lat, s.lng, segVehicle(stops, Math.max(0, index - 1)), false);
       return;
     }
 
-    if (mode === "trips") setSelected(null);
-    else setActivePlace(null);
+    setActivePlace(null);
     const from = stops[index];
     const to = stops[index + 1];
     if (!to) return;
@@ -178,10 +177,16 @@ function JourneyController() {
     const type = vehicleForDistance(km);
     const flip = to.lng < from.lng;
 
+    // Frame just this segment (~half the free viewport) — never zoom out further
+    // than needed. Short motorbike hops stay at street level (maxZoom 14).
+    const sz = map.getSize();
+    const padX = Math.round(sz.x * 0.22);
+    const padY = Math.round(sz.y * 0.22);
+    const leftPad = sz.x < 768 ? padX : Math.max(padX, 430); // keep clear of the card
     map.flyToBounds(L.latLngBounds([from.lat, from.lng], [to.lat, to.lng]), {
-      paddingTopLeft: [80, 130],
-      paddingBottomRight: [420, 180],
-      maxZoom: 10,
+      paddingTopLeft: [leftPad, Math.max(padY, 90)],
+      paddingBottomRight: [padX, Math.max(padY, 190)],
+      maxZoom: 14,
       duration: 1.5,
       easeLinearity: 0.2,
     });
@@ -211,7 +216,7 @@ function JourneyController() {
 
     return cancel;
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [playing, phase, index, stops, mode, faces, map]);
+  }, [playing, phase, index, stops, faces, map]);
 
   return null;
 }

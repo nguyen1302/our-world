@@ -85,8 +85,8 @@ export default function MemoryCard({ isAdmin, onChanged }: { isAdmin: boolean; o
     if (!detail) return;
     const stops = detail.places
       .filter((p) => typeof p.lat === "number")
-      .map((p) => ({ id: p.id, lat: p.lat, lng: p.lng, title: p.placeName || p.title }));
-    if (stops.length > 1) startJourney(stops, "places");
+      .map((p) => ({ id: p.id, tripId: detail.trip.id, lat: p.lat, lng: p.lng, title: p.placeName || p.title }));
+    if (stops.length > 1) startJourney(stops);
   }
 
   async function patch(body: object) {

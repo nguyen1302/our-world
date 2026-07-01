@@ -7,11 +7,11 @@ export interface Faces {
 }
 export interface Stop {
   id: string;
+  tripId: string | null;
   lat: number;
   lng: number;
   title: string;
 }
-export type JourneyMode = "trips" | "places";
 
 function loadFaces(): Faces {
   if (typeof window === "undefined") return { a: null, b: null };
@@ -24,16 +24,15 @@ function loadFaces(): Faces {
 
 interface JourneyState {
   playing: boolean;
-  mode: JourneyMode;
   stops: Stop[];
   index: number;
   phase: "paused" | "moving";
   progress: number;
   faces: Faces;
-  /** In 'places' mode, the place currently being shown (for the card to scroll/highlight). */
+  /** The place currently being shown (for the card to scroll/highlight). */
   activePlaceId: string | null;
 
-  start: (stops: Stop[], mode: JourneyMode) => void;
+  start: (stops: Stop[]) => void;
   exit: () => void;
   next: () => void;
   setProgress: (p: number) => void;
@@ -44,7 +43,6 @@ interface JourneyState {
 
 export const useJourney = create<JourneyState>((set, get) => ({
   playing: false,
-  mode: "trips",
   stops: [],
   index: 0,
   phase: "paused",
@@ -52,8 +50,7 @@ export const useJourney = create<JourneyState>((set, get) => ({
   faces: loadFaces(),
   activePlaceId: null,
 
-  start: (stops, mode) =>
-    set({ playing: true, mode, stops, index: 0, phase: "paused", progress: 0, activePlaceId: null }),
+  start: (stops) => set({ playing: true, stops, index: 0, phase: "paused", progress: 0, activePlaceId: null }),
   exit: () => set({ playing: false, phase: "paused", progress: 0, index: 0, activePlaceId: null }),
   next: () => {
     const { index, stops } = get();

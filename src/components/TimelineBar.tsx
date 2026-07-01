@@ -1,26 +1,18 @@
 "use client";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useMapStore } from "./mapStore";
-import { useJourney, vehicleForDistance, haversineKm } from "./journeyStore";
-import { vehicleSvg, type VehicleType } from "./vehicles";
+import { useJourney } from "./journeyStore";
 
 const PAD = 50;
-const ease = (t: number) => (t < 0.5 ? 2 * t * t : 1 - Math.pow(-2 * t + 2, 2) / 2);
 
 export default function TimelineBar() {
   const memories = useMapStore((s) => s.memories);
   const selectedId = useMapStore((s) => s.selectedId);
   const open = useMapStore((s) => s.open);
   const trackRef = useRef<HTMLDivElement>(null);
-  const vehRef = useRef<HTMLDivElement>(null);
   const [zoom, setZoom] = useState(1);
 
   const playing = useJourney((s) => s.playing);
-  const mode = useJourney((s) => s.mode);
-  const phase = useJourney((s) => s.phase);
-  const jIndex = useJourney((s) => s.index);
-  const progress = useJourney((s) => s.progress);
-  const faces = useJourney((s) => s.faces);
   const startJourney = useJourney((s) => s.start);
 
   const ord = useMemo(() => [...memories].sort((a, b) => a.startAt.localeCompare(b.startAt)), [memories]);
@@ -49,7 +41,6 @@ export default function TimelineBar() {
     return out;
   }, [ord, geom]);
 
-  // scroll active bead into view
   useEffect(() => {
     const el = trackRef.current;
     if (!el) return;
@@ -57,36 +48,10 @@ export default function TimelineBar() {
     if (active) el.scrollLeft = active.offsetLeft - el.clientWidth / 2 + active.clientWidth / 2;
   }, [selectedId, zoom]);
 
-  // journey vehicle on the axis
-  useEffect(() => {
-    const veh = vehRef.current;
-    const track = trackRef.current;
-    if (!veh || !track || !geom || !playing || mode !== "trips") {
-      if (veh) veh.style.display = "none";
-      return;
-    }
-    let x: number;
-    let type: VehicleType = "bike";
-    let flip = false;
-    if (phase === "paused") {
-      const m = ord[jIndex];
-      if (!m) return;
-      x = geom.xOf(m.startAt);
-      const a = ord[jIndex - 1];
-      if (a) type = vehicleForDistance(haversineKm(a, m));
-    } else {
-      const a = ord[jIndex];
-      const b = ord[jIndex + 1];
-      if (!a || !b) return;
-      x = geom.xOf(a.startAt) + (geom.xOf(b.startAt) - geom.xOf(a.startAt)) * ease(progress);
-      type = vehicleForDistance(haversineKm(a, b));
-      flip = b.lng < a.lng;
-    }
-    veh.style.display = "block";
-    veh.style.transform = `translate(${x - 26}px,0) scaleX(${flip ? -1 : 1})`;
-    veh.innerHTML = `<div class="ow-bob" style="width:100%;height:100%">${vehicleSvg(type, faces, { id: "tlv" })}</div>`;
-    track.scrollLeft = x - track.clientWidth / 2;
-  }, [playing, mode, phase, jIndex, progress, ord, geom, faces]);
+  async function play() {
+    const d = await fetch("/api/journey").then((r) => r.json());
+    if (d.stops?.length > 1) startJourney(d.stops);
+  }
 
   const rangeLabel = ord.length ? `${ord[0].startAt.slice(0, 4)} – ${ord[ord.length - 1].startAt.slice(0, 4)}` : "";
 
@@ -101,10 +66,7 @@ export default function TimelineBar() {
         <span className="ow-tl-range">{rangeLabel}</span>
         <div className="ow-tl-spacer" />
         {ord.length > 1 && !playing && (
-          <button
-            className="ow-tl-play"
-            onClick={() => startJourney(ord.map((m) => ({ id: m.id, lat: m.lat, lng: m.lng, title: m.title })), "trips")}
-          >
+          <button className="ow-tl-play" onClick={play}>
             <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M7 5v14l12-7z" /></svg>
             Chuyến đi
           </button>
@@ -152,7 +114,6 @@ export default function TimelineBar() {
                 </div>
               );
             })}
-            <div className="ow-tlvehicle" ref={vehRef} />
           </div>
         </div>
       )}
