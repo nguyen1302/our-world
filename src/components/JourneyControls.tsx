@@ -70,6 +70,8 @@ export default function JourneyControls() {
   const smallPlaying = useSmallJourney((s) => s.playing);
   const exitTrip = useMapStore((s) => s.exitTrip);
   const backToTrip = useMapStore((s) => s.backToTrip);
+  const detailOpen = useMapStore((s) => s.journeyDetailOpen);
+  const toggleDetail = useMapStore((s) => s.toggleJourneyDetail);
 
   // one soundtrack shared by both journeys — start once, stop only when BOTH stop
   // (startMusic is idempotent, so toggling the small panel won't restart it)
@@ -99,6 +101,10 @@ export default function JourneyControls() {
 
   return (
     <>
+      {/* mobile-only: open/close the stop's detail while journeying (map stays visible) */}
+      <button className="ow-jdetail-btn" onClick={toggleDetail}>
+        {detailOpen ? "▾ Ẩn chi tiết" : "▸ Chi tiết"}
+      </button>
       {bigPlaying && <Panel store={useBigJourney} variant="big" badge="Mốc lớn · Chuyến đi" icon="✦" stepWord="Chặng" onNext={bigNext} onExit={bigExit} />}
       {smallPlaying && <Panel store={useSmallJourney} variant="small" badge="Mốc nhỏ · Trong chuyến" icon="↳" stepWord="Điểm" onNext={smallNext} onExit={smallExit} />}
     </>

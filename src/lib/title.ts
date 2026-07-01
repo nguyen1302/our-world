@@ -2,18 +2,11 @@ function pad(n: number): string {
   return n < 10 ? `0${n}` : String(n);
 }
 
-// Format calendar day/month/year in Vietnam time, so server (UTC) and browser
-// (UTC+7) always show the same date — no off-by-one near midnight.
-export const VN_TZ = "Asia/Ho_Chi_Minh";
+// EXIF wall-clock time is stored with its UTC fields = the actual local time the
+// photo was taken. So format from UTC fields everywhere (server + client) to show
+// the true capture day — converting to a timezone would double-shift it.
 function dmy(d: Date): { day: number; month: number; year: number } {
-  const parts = new Intl.DateTimeFormat("en-GB", {
-    timeZone: VN_TZ,
-    day: "2-digit",
-    month: "2-digit",
-    year: "numeric",
-  }).formatToParts(d);
-  const get = (t: string) => Number(parts.find((p) => p.type === t)!.value);
-  return { day: get("day"), month: get("month"), year: get("year") };
+  return { day: d.getUTCDate(), month: d.getUTCMonth() + 1, year: d.getUTCFullYear() };
 }
 
 export function formatDateRange(startAt: Date, endAt: Date): string {

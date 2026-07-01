@@ -4,20 +4,9 @@ import { createPortal } from "react-dom";
 import { useMapStore, type Place } from "./mapStore";
 import { useSmallJourney } from "./journeyStore";
 
-// Vietnam-time parts, matching the server-generated titles (no off-by-one).
-function vnParts(iso: string) {
-  const p = new Intl.DateTimeFormat("en-GB", {
-    timeZone: "Asia/Ho_Chi_Minh",
-    day: "numeric",
-    month: "numeric",
-    year: "numeric",
-  }).formatToParts(new Date(iso));
-  const g = (t: string) => p.find((x) => x.type === t)!.value;
-  return { d: g("day"), m: g("month"), y: g("year") };
-}
+// Use the ISO's UTC date portion (= true capture wall-clock), same as the bead.
 function fmtFull(iso: string): string {
-  const { d, m, y } = vnParts(iso);
-  return `${d} Tháng ${m}, ${y}`;
+  return `${Number(iso.slice(8, 10))} Tháng ${Number(iso.slice(5, 7))}, ${iso.slice(0, 4)}`;
 }
 // thumbnail of the chosen cover photo (falls back to the first photo)
 function coverUrl(photos: { id: string; thumbUrl: string | null }[], coverId: string | null | undefined): string {
@@ -25,9 +14,7 @@ function coverUrl(photos: { id: string; thumbUrl: string | null }[], coverId: st
   return (c ?? photos[0])?.thumbUrl ?? "";
 }
 function dateRange(a: string, b: string): string {
-  const pa = vnParts(a);
-  const pb = vnParts(b);
-  if (pa.d === pb.d && pa.m === pb.m && pa.y === pb.y) return fmtFull(a);
+  if (a.slice(0, 10) === b.slice(0, 10)) return fmtFull(a);
   return `${fmtFull(a)} – ${fmtFull(b)}`;
 }
 

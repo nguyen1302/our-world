@@ -58,8 +58,11 @@ function MarkersLayer() {
         }),
     });
     for (const m of memories) {
+      // when inside a trip, hide THAT trip's marker (its place markers represent it)
+      // so it doesn't stack a concentric ring over the place markers
+      if (level2 && m.id === focusedTripId) continue;
       const marker = L.marker([m.lat, m.lng], {
-        icon: L.divIcon({ className: "", iconSize: [44, 44], iconAnchor: [22, 22], html: markerHtml(m.coverThumbUrl, m.id === focusedTripId, 44) }),
+        icon: L.divIcon({ className: "", iconSize: [44, 44], iconAnchor: [22, 22], html: markerHtml(m.coverThumbUrl, false, 44) }),
       });
       marker.on("click", (e: any) => {
         L.DomEvent.stopPropagation(e);

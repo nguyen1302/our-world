@@ -52,7 +52,7 @@ function bodyFor(type: VehicleType, faces: Faces, id: string): string {
       <rect x="22" y="17" width="9" height="11" rx="4.5" fill="${GOLD}"/>
       <rect x="37" y="14" width="9" height="13" rx="4.5" fill="${ROSE}"/>
       <rect x="10" y="33" width="8" height="3" rx="1.5" fill="#6b5a4a"/>
-      ${fa(26, 14, 6.4)} ${fb(44, 11, 6.4)}`;
+      ${fa(23, 11, 11)} ${fb(48, 10, 11)}`;
   }
   if (type === "car") {
     return `
@@ -64,7 +64,7 @@ function bodyFor(type: VehicleType, faces: Faces, id: string): string {
       <circle cx="52" cy="35" r="6.2" fill="${WHEEL}"/><circle cx="52" cy="35" r="2.3" fill="${CREAM}"/>
       <circle cx="64" cy="26" r="2.1" fill="#FFE9A8"/>
       <rect x="5" y="31" width="7" height="3" rx="1.5" fill="#6b5a4a"/>
-      ${fa(27, 16, 6)} ${fb(45, 16, 6)}`;
+      ${fa(25, 13, 11)} ${fb(47, 13, 11)}`;
   }
   // plane
   return `
@@ -75,7 +75,7 @@ function bodyFor(type: VehicleType, faces: Faces, id: string): string {
     <rect x="9" y="22" width="52" height="3.4" rx="1.7" fill="${ROSE}"/>
     <path d="M55 16 Q62 17 61 24 L55 24 Z" fill="${GLASS}"/>
     <circle cx="30" cy="22" r="5.4" fill="${GLASS}"/><circle cx="44" cy="22" r="5.4" fill="${GLASS}"/>
-    ${fa(30, 22, 5.2)} ${fb(44, 22, 5.2)}`;
+    ${fa(28, 18, 9.5)} ${fb(46, 18, 9.5)}`;
 }
 
 /** SVG markup for a cute vehicle, usable as Leaflet divIcon html or innerHTML. */
@@ -87,5 +87,6 @@ export function vehicleSvg(
   const id = opts.id ?? "v";
   const inner = bodyFor(type, faces, id);
   const shadow = `<ellipse cx="36" cy="44" rx="30" ry="2.6" fill="rgba(0,0,0,0.18)"/>`;
-  return `<svg viewBox="0 0 72 46" width="100%" height="100%" xmlns="http://www.w3.org/2000/svg">${shadow}${inner}</svg>`;
+  // viewBox has top headroom (-6) so the enlarged avatars aren't clipped
+  return `<svg viewBox="0 -6 72 52" width="100%" height="100%" style="overflow:visible" xmlns="http://www.w3.org/2000/svg">${shadow}${inner}</svg>`;
 }

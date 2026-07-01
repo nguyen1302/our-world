@@ -82,6 +82,9 @@ interface MapState {
 
   baseLayer: "satellite" | "light";
   toggleBaseLayer: () => void;
+  // mobile: show the stop's detail card while a journey is running
+  journeyDetailOpen: boolean;
+  toggleJourneyDetail: () => void;
 
   // manual placing of no-GPS photos (one click places all selected)
   placingPhotoIds: string[];
@@ -124,6 +127,8 @@ export const useMapStore = create<MapState>((set, get) => ({
   placingPhotoIds: [],
   baseLayer: "satellite",
   toggleBaseLayer: () => set((s) => ({ baseLayer: s.baseLayer === "satellite" ? "light" : "satellite" })),
+  journeyDetailOpen: false,
+  toggleJourneyDetail: () => set((s) => ({ journeyDetailOpen: !s.journeyDetailOpen })),
 
   setMemories: (m) => set({ memories: m }),
   setScratch: (codes) => set({ scratchCodes: codes }),
@@ -159,12 +164,8 @@ export const useMapStore = create<MapState>((set, get) => ({
     set({ tripDetail: detail, selectedPlaceId: stillThere ? cur.selectedPlaceId : null });
   },
   exitTrip: () => {
-    set({
-      focusedTripId: null,
-      tripDetail: null,
-      selectedPlaceId: null,
-      focusBounds: { points: get().memories.map((m) => [m.lat, m.lng]), nonce: nonce() },
-    });
+    // closing detail should NOT move/zoom the camera — keep the current view
+    set({ focusedTripId: null, tripDetail: null, selectedPlaceId: null });
   },
   selectPlace: (id) => {
     const p = get().tripDetail?.places.find((x) => x.id === id);
@@ -174,11 +175,8 @@ export const useMapStore = create<MapState>((set, get) => ({
   // select a place WITHOUT moving the camera (journey controller owns the camera)
   markPlace: (id) => set({ selectedPlaceId: id }),
   backToTrip: () => {
-    const d = get().tripDetail;
-    set({
-      selectedPlaceId: null,
-      focusBounds: d ? { points: d.places.map((p) => [p.lat, p.lng]), nonce: nonce() } : null,
-    });
+    // going back from a place to the trip: don't zoom out, just deselect the place
+    set({ selectedPlaceId: null });
   },
   updatePlaceLocal: (id, patch) =>
     set((s) =>

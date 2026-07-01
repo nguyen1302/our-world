@@ -31,6 +31,7 @@ export default function Home() {
   const bigPlaying = useBigJourney((s) => s.playing);
   const smallPlaying = useSmallJourney((s) => s.playing);
   const journeyActive = bigPlaying || smallPlaying;
+  const journeyDetailOpen = useMapStore((s) => s.journeyDetailOpen);
 
   const [role, setRole] = useState<"admin" | "viewer" | null>(null);
   const [showFaces, setShowFaces] = useState(false);
@@ -73,7 +74,7 @@ export default function Home() {
   const isAdmin = role === "admin";
 
   return (
-    <div className={`ow-app ${journeyActive ? "ow-app--journey" : ""}`}>
+    <div className={`ow-app ${journeyActive ? "ow-app--journey" : ""} ${journeyActive && journeyDetailOpen ? "ow-app--jdetail" : ""}`}>
       <WorldMap onPlaced={refresh} />
       <Uploader ref={uploaderRef} onUploaded={refresh} />
 
