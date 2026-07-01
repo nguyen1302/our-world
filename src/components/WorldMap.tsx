@@ -1,6 +1,6 @@
 "use client";
 import { useEffect, useMemo, useRef } from "react";
-import { MapContainer, TileLayer, Polyline, useMap } from "react-leaflet";
+import { MapContainer, TileLayer, Polyline, useMap, useMapEvents } from "react-leaflet";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
 import "leaflet.markercluster/dist/MarkerCluster.css";
@@ -121,6 +121,32 @@ function FocusController() {
     });
   }, [map, focusBounds]);
 
+  return null;
+}
+
+// When "placing" a no-GPS photo, a map click assigns its location.
+function PlacingLayer({ onPlaced }: { onPlaced: () => void }) {
+  const placingPhotoIds = useMapStore((s) => s.placingPhotoIds);
+  const cancelPlacing = useMapStore((s) => s.cancelPlacing);
+  useMapEvents({
+    async click(e) {
+      if (placingPhotoIds.length === 0) return;
+      const { lat, lng } = e.latlng;
+      const ids = placingPhotoIds;
+      cancelPlacing();
+      // place all selected photos at the clicked spot
+      await Promise.all(
+        ids.map((id) =>
+          fetch(`/api/photos/${id}/locate`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ lat, lng }),
+          }).catch(() => null),
+        ),
+      );
+      onPlaced();
+    },
+  });
   return null;
 }
 
@@ -293,7 +319,7 @@ function JourneyController() {
   return null;
 }
 
-export default function WorldMap() {
+export default function WorldMap({ onPlaced }: { onPlaced?: () => void }) {
   const memories = useMapStore((s) => s.memories);
   const showRoute = useMapStore((s) => s.showRoute);
   const focusedTripId = useMapStore((s) => s.focusedTripId);
@@ -340,6 +366,7 @@ export default function WorldMap() {
       <MarkersLayer />
       <FocusController />
       <JourneyController />
+      <PlacingLayer onPlaced={() => onPlaced?.()} />
     </MapContainer>
   );
 }

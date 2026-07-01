@@ -78,10 +78,15 @@ interface MapState {
   focusPoint: FocusPoint | null;
   focusBounds: FocusBounds | null;
 
+  // manual placing of no-GPS photos (one click places all selected)
+  placingPhotoIds: string[];
+
   setMemories: (m: MemoryMarker[]) => void;
   setScratch: (codes: string[]) => void;
   setStats: (s: Stats) => void;
   toggleRoute: () => void;
+  startPlacing: (photoIds: string[]) => void;
+  cancelPlacing: () => void;
 
   requestEnterTrip: (id: string) => void;
   enterTrip: (detail: TripDetail) => void;
@@ -110,11 +115,14 @@ export const useMapStore = create<MapState>((set, get) => ({
   tripCache: {},
   focusPoint: null,
   focusBounds: null,
+  placingPhotoIds: [],
 
   setMemories: (m) => set({ memories: m }),
   setScratch: (codes) => set({ scratchCodes: codes }),
   setStats: (s) => set({ stats: s }),
   toggleRoute: () => set((s) => ({ showRoute: !s.showRoute })),
+  startPlacing: (photoIds) => set({ placingPhotoIds: photoIds }),
+  cancelPlacing: () => set({ placingPhotoIds: [] }),
 
   requestEnterTrip: (id) => set({ pendingEnterTripId: id }),
   enterTrip: (detail) => {

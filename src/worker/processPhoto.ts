@@ -16,7 +16,20 @@ export async function processPhoto(photoId: string): Promise<void> {
   const original = await storage.getObject(photo.s3KeyOriginal);
   const exif = await readExif(original);
 
-  // No GPS -> cannot place on map. Keep it but flag for review.
+  // Always create a thumbnail (also for no-GPS photos, so they can be shown
+  // in the "unplaced" list and placed on the map manually). Resilient: if the
+  // format can't be decoded (rare HEIC edge case), keep going without a thumb.
+  let tKey: string | null = null;
+  try {
+    const thumb = await makeThumbnail(original);
+    tKey = thumbKey(photo.spaceId, photoId);
+    await storage.putObject(tKey, thumb, "image/webp");
+  } catch (e) {
+    console.error(`thumbnail failed for ${photoId}:`, e instanceof Error ? e.message : e);
+    tKey = null;
+  }
+
+  // No GPS -> cannot auto-place. Keep it (with thumbnail) flagged for manual placing.
   if (exif.lat === null || exif.lng === null) {
     await db
       .update(photos)
@@ -25,6 +38,7 @@ export async function processPhoto(photoId: string): Promise<void> {
         takenAt: exif.takenAt,
         width: exif.width,
         height: exif.height,
+        s3KeyThumb: tKey,
         exifJson: exif as any,
       })
       .where(eq(photos.id, photoId));
@@ -32,10 +46,6 @@ export async function processPhoto(photoId: string): Promise<void> {
   }
 
   const geo = await reverseGeocode(exif.lat, exif.lng);
-
-  const thumb = await makeThumbnail(original);
-  const tKey = thumbKey(photo.spaceId, photoId);
-  await storage.putObject(tKey, thumb, "image/webp");
 
   const takenAt = exif.takenAt ?? photo.createdAt;
 

@@ -12,6 +12,7 @@ import MemoryCard from "@/components/MemoryCard";
 import JourneyControls from "@/components/JourneyControls";
 import FaceModal from "@/components/FaceModal";
 import MusicModal from "@/components/MusicModal";
+import UnplacedPanel from "@/components/UnplacedPanel";
 
 const WorldMap = dynamic(() => import("@/components/WorldMap"), { ssr: false });
 
@@ -28,6 +29,7 @@ export default function Home() {
   const [role, setRole] = useState<"admin" | "viewer" | null>(null);
   const [showFaces, setShowFaces] = useState(false);
   const [showMusic, setShowMusic] = useState(false);
+  const [dataVersion, setDataVersion] = useState(0);
 
   const refresh = useCallback(async () => {
     const [m, sc, st] = await Promise.all([
@@ -38,6 +40,7 @@ export default function Home() {
     if (m.memories) setMemories(m.memories);
     if (sc.provinceCodes) setScratch(sc.provinceCodes);
     if (st && typeof st.memories === "number") setStats(st);
+    setDataVersion((v) => v + 1);
   }, [setMemories, setScratch, setStats]);
 
   useEffect(() => {
@@ -64,7 +67,7 @@ export default function Home() {
 
   return (
     <div className="ow-app">
-      <WorldMap />
+      <WorldMap onPlaced={refresh} />
 
       <header className="ow-topbar">
         <div className="ow-brand">
@@ -82,6 +85,7 @@ export default function Home() {
             <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><circle cx="6" cy="19" r="2.4" /><circle cx="18" cy="5" r="2.4" /><path d="M8 17.5C12 15 9 9 13.5 6.5" /></svg>
             <span>Tuyến đường</span>
           </button>
+          {isAdmin && <UnplacedPanel version={dataVersion} />}
           <TopMenu
             isAdmin={isAdmin}
             onUploaded={refresh}
