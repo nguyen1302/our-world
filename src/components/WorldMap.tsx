@@ -66,6 +66,9 @@ function MarkersLayer() {
       });
       marker.on("click", (e: any) => {
         L.DomEvent.stopPropagation(e);
+        // during a guided journey the controller owns the camera — a stray tap must
+        // NOT drill in / retarget the camera (that's what "văng ra" mid-journey was)
+        if (useBigJourney.getState().playing || useSmallJourney.getState().playing) return;
         requestEnterTrip(m.id);
       });
       tripGroup.addLayer(marker);
@@ -83,6 +86,7 @@ function MarkersLayer() {
         });
         marker.on("click", (e: any) => {
           L.DomEvent.stopPropagation(e);
+          if (useBigJourney.getState().playing || useSmallJourney.getState().playing) return;
           selectPlace(p.id);
         });
         placeGroup.addLayer(marker);
@@ -104,11 +108,17 @@ function FocusController() {
   const focusPoint = useMapStore((s) => s.focusPoint);
   const focusBounds = useMapStore((s) => s.focusBounds);
 
+  // While a journey plays, the JourneyController owns the camera — ignore any
+  // focus change so nothing yanks the view mid-journey.
+  const journeying = () => useBigJourney.getState().playing || useSmallJourney.getState().playing;
+
   useEffect(() => {
+    if (journeying()) return;
     if (focusPoint) map.flyTo([focusPoint.lat, focusPoint.lng], focusPoint.zoom, { duration: 1.1, easeLinearity: 0.25 });
   }, [map, focusPoint]);
 
   useEffect(() => {
+    if (journeying()) return;
     if (!focusBounds) return;
     if (focusBounds.points.length === 0) {
       map.flyTo(VN_CENTER, VN_ZOOM, { duration: 1.1 });
