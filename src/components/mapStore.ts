@@ -78,6 +78,9 @@ interface MapState {
   focusPoint: FocusPoint | null;
   focusBounds: FocusBounds | null;
 
+  baseLayer: "satellite" | "light";
+  toggleBaseLayer: () => void;
+
   // manual placing of no-GPS photos (one click places all selected)
   placingPhotoIds: string[];
 
@@ -117,6 +120,8 @@ export const useMapStore = create<MapState>((set, get) => ({
   focusPoint: null,
   focusBounds: null,
   placingPhotoIds: [],
+  baseLayer: "satellite",
+  toggleBaseLayer: () => set((s) => ({ baseLayer: s.baseLayer === "satellite" ? "light" : "satellite" })),
 
   setMemories: (m) => set({ memories: m }),
   setScratch: (codes) => set({ scratchCodes: codes }),

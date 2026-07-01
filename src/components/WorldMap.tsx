@@ -1,5 +1,5 @@
 "use client";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef } from "react";
 import { MapContainer, TileLayer, Polyline, useMap, useMapEvents } from "react-leaflet";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
@@ -327,7 +327,7 @@ export default function WorldMap({ onPlaced }: { onPlaced?: () => void }) {
   const showRoute = useMapStore((s) => s.showRoute);
   const focusedTripId = useMapStore((s) => s.focusedTripId);
   const tripDetail = useMapStore((s) => s.tripDetail);
-  const [base, setBase] = useState<"satellite" | "light">("satellite");
+  const base = useMapStore((s) => s.baseLayer);
 
   // big route (gold) = journey between trips
   const routePoints = useMemo(
@@ -346,14 +346,6 @@ export default function WorldMap({ onPlaced }: { onPlaced?: () => void }) {
   }, [focusedTripId, tripDetail]);
 
   return (
-    <>
-    <button
-      className="ow-basetoggle"
-      onClick={() => setBase((b) => (b === "satellite" ? "light" : "satellite"))}
-      title="Đổi kiểu bản đồ"
-    >
-      {base === "satellite" ? "🗺️ Bản đồ nhẹ" : "🛰️ Vệ tinh"}
-    </button>
     <MapContainer center={VN_CENTER} zoom={VN_ZOOM} className="ow-map" scrollWheelZoom zoomControl={false} preferCanvas zoomAnimation>
       {base === "satellite" ? (
         <>
@@ -399,6 +391,5 @@ export default function WorldMap({ onPlaced }: { onPlaced?: () => void }) {
       <JourneyController />
       <PlacingLayer onPlaced={() => onPlaced?.()} />
     </MapContainer>
-    </>
   );
 }

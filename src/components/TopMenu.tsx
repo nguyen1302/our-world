@@ -17,7 +17,6 @@ export default function TopMenu({
   onImport: () => void;
 }) {
   const [open, setOpen] = useState(false);
-  const [backfillMsg, setBackfillMsg] = useState("");
 
   return (
     <div className="ow-menu">
@@ -38,20 +37,6 @@ export default function TopMenu({
           {isAdmin && (
             <button className="ow-menu__item" onClick={() => { setOpen(false); onMusic(); }}>
               🎵 Nhạc nền
-            </button>
-          )}
-          {isAdmin && (
-            <button
-              className="ow-menu__item"
-              onClick={async () => {
-                setBackfillMsg("Đang cập nhật tỉnh…");
-                await fetch("/api/admin/backfill", { method: "POST" }).catch(() => {});
-                setBackfillMsg("");
-                setOpen(false);
-                onUploaded();
-              }}
-            >
-              {backfillMsg || "📍 Cập nhật tỉnh thành"}
             </button>
           )}
           <button className="ow-menu__item ow-menu__item--logout" onClick={() => { setOpen(false); onLogout(); }}>
