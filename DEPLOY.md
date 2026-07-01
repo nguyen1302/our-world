@@ -34,7 +34,7 @@ Caddy(443) ─▶ web(Next.js) ─▶ Postgres      worker(xử lý ảnh)
   {
     "AllowedHeaders": ["*"],
     "AllowedMethods": ["PUT", "GET"],
-    "AllowedOrigins": ["https://ourworld.duckdns.org"],
+    "AllowedOrigins": ["https://wewerehere.duckdns.org"],
     "ExposeHeaders": ["ETag"],
     "MaxAgeSeconds": 3000
   }
@@ -79,8 +79,8 @@ Caddy(443) ─▶ web(Next.js) ─▶ Postgres      worker(xử lý ảnh)
 
 2. SSH vào:
 ```bash
-chmod 400 our-world-key.pem
-ssh -i our-world-key.pem ubuntu@<PUBLIC_IP>
+chmod 400 our-world.pem
+ssh -i our-world.pem ubuntu@32.236.39.236
 ```
 
 ---
@@ -90,7 +90,7 @@ ssh -i our-world-key.pem ubuntu@<PUBLIC_IP>
 1. Vào https://www.duckdns.org → đăng nhập (Google/GitHub).
 2. Tạo subdomain, vd `ourworld` → thành `ourworld.duckdns.org`.
 3. Ô **current ip**: điền **Public IPv4** của EC2 → **update ip**.
-4. (Kiểm tra) `ping ourworld.duckdns.org` phải ra IP EC2.
+4. (Kiểm tra) `ping wewereher.duckdns.org` phải ra IP EC2.
 
 > Caddy sẽ tự xin chứng chỉ HTTPS Let's Encrypt cho domain này (cần cổng 80/443 mở + domain trỏ đúng IP).
 
