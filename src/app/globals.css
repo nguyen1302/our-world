@@ -187,6 +187,17 @@ body { font-family: var(--sans); -webkit-font-smoothing: antialiased; text-rende
 .ow-journey__exit, .ow-journey__mute { display: flex; align-items: center; gap: 7px; cursor: pointer; color: #d8cec0; font-size: 13px; padding: 7px 12px; border-radius: 11px; border: 1px solid var(--line); background: rgba(240,235,220,.04); }
 .ow-journey__center { display: flex; flex-direction: column; align-items: center; min-width: 150px; }
 .ow-journey__step { font-size: 10px; letter-spacing: .14em; text-transform: uppercase; color: var(--gold); }
+/* the stage number is a tappable jump-to picker: an invisible <select> sits on top
+   of the styled number, so tapping it opens the native stop picker */
+.ow-journey__pickwrap { position: relative; display: inline-block; }
+.ow-journey__pickval {
+  display: inline-block; min-width: 1.2em; text-align: center; font-weight: 700;
+  color: var(--cream); border-bottom: 1px dashed var(--gold); padding: 0 3px; cursor: pointer;
+}
+.ow-journey__pick {
+  position: absolute; inset: 0; width: 100%; height: 100%;
+  opacity: 0; cursor: pointer; -webkit-appearance: none; appearance: none; border: 0; font-size: 16px;
+}
 .ow-journey__status { font-family: var(--serif); font-size: 15px; color: var(--cream); margin-top: 3px; text-align: center; }
 .ow-journey__next { display: flex; align-items: center; gap: 7px; cursor: pointer; padding: 9px 16px; border-radius: 12px; font-size: 13.5px; font-weight: 600; color: #1a1310; background: linear-gradient(135deg, var(--gold), var(--rose)); box-shadow: 0 6px 18px rgba(233,184,114,.25); border: none; font-family: var(--sans); }
 .ow-journey__next:disabled { opacity: .6; cursor: default; }

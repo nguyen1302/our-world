@@ -52,6 +52,7 @@ export interface JourneyState {
   start: (stops: Stop[]) => void;
   exit: () => void;
   next: () => void;
+  jumpTo: (i: number) => void;
   setProgress: (p: number) => void;
   arrive: () => void;
   setActivePlace: (id: string | null) => void;
@@ -75,6 +76,13 @@ function makeJourney(mode: JourneyMode) {
       if (index >= stops.length - 1) set({ playing: false, phase: "paused", progress: 0, index: 0 });
       else set({ phase: "moving", progress: 0 });
     },
+    // jump straight to any stop (resume at stage X / skip around); pause there so
+    // the controller flies to it, then the user presses "Tiếp" to keep going.
+    jumpTo: (i) =>
+      set((s) => {
+        const idx = Math.max(0, Math.min(i, s.stops.length - 1));
+        return { playing: true, index: idx, phase: "paused", progress: 0 };
+      }),
     setProgress: (p) => set({ progress: p }),
     arrive: () => set((s) => ({ index: s.index + 1, phase: "paused", progress: 0 })),
     setActivePlace: (id) => set({ activePlaceId: id }),
