@@ -44,10 +44,10 @@ export async function GET() {
   const coverKeyMap = new Map<string, string | null>();
   if (coverIds.length) {
     const covers = await db
-      .select({ id: photos.id, thumb: photos.s3KeyThumb })
+      .select({ id: photos.id, thumb: photos.s3KeyThumb, orig: photos.s3KeyOriginal })
       .from(photos)
       .where(inArray(photos.id, coverIds));
-    for (const c of covers) coverKeyMap.set(c.id, c.thumb);
+    for (const c of covers) coverKeyMap.set(c.id, c.thumb ?? c.orig); // fallback to original
   }
 
   const storage = getStorage();

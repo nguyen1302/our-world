@@ -30,12 +30,12 @@ export async function GET(_req: NextRequest, { params }: { params: { id: string 
   const placeOut = await Promise.all(
     places.map(async (p) => {
       const pics = await db
-        .select({ id: photos.id, thumb: photos.s3KeyThumb })
+        .select({ id: photos.id, thumb: photos.s3KeyThumb, orig: photos.s3KeyOriginal })
         .from(photos)
         .where(and(eq(photos.memoryId, p.id), isNull(photos.deletedAt), eq(photos.status, "processed")))
         .orderBy(asc(photos.takenAt));
       const gallery = await Promise.all(
-        pics.map(async (x) => ({ id: x.id, thumbUrl: x.thumb ? await storage.presignGet(x.thumb) : null })),
+        pics.map(async (x) => ({ id: x.id, thumbUrl: await storage.presignGet(x.thumb ?? x.orig) })),
       );
       return {
         id: p.id,

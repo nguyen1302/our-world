@@ -5,6 +5,8 @@ import { db } from "@/db";
 import { photos } from "@/db/schema";
 import { reverseGeocode } from "@/lib/geocode";
 import { assignPhotoToMemory } from "@/lib/cluster";
+import { getStorage, thumbKey } from "@/lib/storage";
+import { makeThumbnail } from "@/lib/thumbnail";
 
 export const runtime = "nodejs";
 
@@ -27,9 +29,31 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
   const geo = await reverseGeocode(lat, lng);
   const takenAt = photo.takenAt ?? photo.createdAt;
 
+  // Ensure a thumbnail exists (older photos processed before thumbs-for-needs_review
+  // have none → would show broken images on the map/card/timeline).
+  let thumb = photo.s3KeyThumb;
+  if (!thumb) {
+    try {
+      const storage = getStorage();
+      const original = await storage.getObject(photo.s3KeyOriginal);
+      const buf = await makeThumbnail(original);
+      const tKey = thumbKey(photo.spaceId, params.id);
+      await storage.putObject(tKey, buf, "image/webp");
+      thumb = tKey;
+    } catch (e) {
+      console.error("locate thumbnail failed:", e instanceof Error ? e.message : e);
+    }
+  }
+
   await db
     .update(photos)
-    .set({ lat, lng, status: "processed", exifJson: { ...(photo.exifJson as any), manual: true } as any })
+    .set({
+      lat,
+      lng,
+      status: "processed",
+      s3KeyThumb: thumb,
+      exifJson: { ...(photo.exifJson as any), manual: true } as any,
+    })
     .where(eq(photos.id, params.id));
 
   await assignPhotoToMemory({ id: params.id, spaceId: photo.spaceId, lat, lng, takenAt }, geo);

@@ -239,13 +239,40 @@ body { font-family: var(--sans); -webkit-font-smoothing: antialiased; text-rende
 
 /* ---------- Responsive ---------- */
 @media (max-width: 767px) {
-  :root { --tlbar-h: 132px; }
-  .ow-topbar { padding: 12px; gap: 8px; }
-  .ow-brand { padding: 9px 13px; }
-  .ow-brand__name { font-size: 16px; }
+  :root { --tlbar-h: 122px; }
+  .ow-topbar { padding: 10px; gap: 6px; }
+  .ow-brand { padding: 8px 11px; }
+  .ow-brand__name { font-size: 15px; }
   .ow-brand__sub { display: none; }
-  .ow-topright { max-width: none; gap: 8px; }
-  .ow-tlbar { left: 10px; right: 10px; bottom: 10px; padding: 12px 14px 10px; }
-  .ow-card { top: auto; left: 0; right: 0; bottom: 0; width: 100%; max-width: 100%; max-height: 82vh; border-radius: 22px 22px 0 0; border-left: none; border-right: none; }
-  .ow-journey { bottom: 16px; }
+  .ow-topright { max-width: none; gap: 6px; flex-wrap: wrap; }
+  .ow-stat { padding: 0 8px; }
+  .ow-stat__l { display: none; }              /* chỉ số, gọn */
+  .ow-otd { display: none; }                   /* On This Day ẩn trên mobile cho đỡ chật */
+  .ow-pillbtn span { display: none; }          /* nút chỉ còn icon */
+  .ow-pillbtn, .ow-iconbtn, .ow-unplaced-btn { height: 38px; padding: 0 11px; }
+  .ow-unplaced-btn b { margin-left: 2px; }
+
+  .ow-tlbar { left: 8px; right: 8px; bottom: 8px; padding: 10px 12px 8px; }
+  .ow-card { top: auto; left: 0; right: 0; bottom: 0; width: 100%; max-width: 100%; max-height: 78vh; border-radius: 22px 22px 0 0; border-left: none; border-right: none; }
+
+  /* Journey panels → lên TRÊN (dưới topbar), full-width, gọn, xếp chồng.
+     Tách khỏi thẻ + timeline ở đáy để không đè nhau. */
+  .ow-journey {
+    top: calc(var(--topbar-h) + 14px); bottom: auto; left: 8px; right: 8px;
+    transform: none; gap: 8px; padding: 8px 10px; border-radius: 14px;
+  }
+  .ow-journey--small {
+    top: calc(var(--topbar-h) + 74px) !important; bottom: auto !important;
+    transform: none; scale: 1; left: 8px; right: 8px;
+  }
+  .ow-journey__center { min-width: 0; flex: 1; }
+  .ow-journey__status { font-size: 13px; }
+  .ow-journey__badge { padding: 4px 8px; font-size: 9px; }
+  .ow-journey__badge-ic { display: none; }
+  .ow-journey__exit, .ow-journey__mute { padding: 7px 9px; }
+  .ow-journey__next { padding: 8px 12px; }
+
+  .ow-placing { top: calc(var(--topbar-h) + 14px); left: 8px; right: 8px; transform: none; justify-content: center; font-size: 12px; }
+  .ow-modal__box, .ow-modal__box--wide { width: 92vw; }
+  .ow-unplaced-grid { grid-template-columns: repeat(3, 1fr); }
 }
