@@ -14,17 +14,10 @@ const VN_ZOOM = 6;
 const GOLD = "#e9b872";
 const ROSE = "#d98695";
 
-interface Marker {
-  id: string;
-  lat: number;
-  lng: number;
-  cover: string | null;
-}
-
-function markerHtml(cover: string | null, active: boolean): string {
+function markerHtml(cover: string | null, active: boolean, size = 44): string {
   const glow = active ? `0 6px 20px rgba(0,0,0,.6),0 0 24px ${GOLD}` : `0 4px 14px rgba(0,0,0,.6),0 0 16px ${GOLD}66`;
   return (
-    `<div class="wwh-mk"><div class="wwh-mk-inner" style="width:44px;height:44px;border-radius:50%;padding:2px;` +
+    `<div class="wwh-mk"><div class="wwh-mk-inner" style="width:${size}px;height:${size}px;border-radius:50%;padding:2px;` +
     `background:linear-gradient(135deg,${GOLD},${ROSE});box-shadow:${glow};transform:scale(${active ? 1.32 : 1})">` +
     `<img src="${cover ?? ""}" style="width:100%;height:100%;object-fit:cover;border-radius:50%;display:block;border:2px solid #11160F;"></div></div>`
   );
@@ -48,12 +41,10 @@ function MarkersLayer() {
   const selectPlace = useMapStore((s) => s.selectPlace);
 
   const level2 = !!focusedTripId && !!tripDetail;
-  const markers: Marker[] = level2
-    ? tripDetail!.places.map((p) => ({ id: p.id, lat: p.lat, lng: p.lng, cover: p.photos[0]?.thumbUrl ?? null }))
-    : memories.map((m) => ({ id: m.id, lat: m.lat, lng: m.lng, cover: m.coverThumbUrl }));
 
   useEffect(() => {
-    const group = (L as any).markerClusterGroup({
+    // Big mốc = trip markers (always shown, even while riding inside a trip).
+    const tripGroup = (L as any).markerClusterGroup({
       maxClusterRadius: 46,
       showCoverageOnHover: false,
       iconCreateFunction: (c: any) =>
@@ -66,21 +57,39 @@ function MarkersLayer() {
             `box-shadow:0 0 0 6px ${GOLD}29,0 8px 24px rgba(0,0,0,0.55);">${c.getChildCount()}</div>`,
         }),
     });
-    for (const m of markers) {
-      const active = level2 && m.id === selectedPlaceId;
+    for (const m of memories) {
       const marker = L.marker([m.lat, m.lng], {
-        icon: L.divIcon({ className: "", iconSize: [44, 44], iconAnchor: [22, 22], html: markerHtml(m.cover, active) }),
+        icon: L.divIcon({ className: "", iconSize: [44, 44], iconAnchor: [22, 22], html: markerHtml(m.coverThumbUrl, m.id === focusedTripId, 44) }),
       });
       marker.on("click", (e: any) => {
         L.DomEvent.stopPropagation(e);
-        if (level2) selectPlace(m.id);
-        else requestEnterTrip(m.id);
+        requestEnterTrip(m.id);
       });
-      group.addLayer(marker);
+      tripGroup.addLayer(marker);
     }
-    map.addLayer(group);
+    map.addLayer(tripGroup);
+
+    // Small mốc = place markers of the current trip, overlaid on top (not clustered).
+    let placeGroup: L.LayerGroup | null = null;
+    if (level2) {
+      placeGroup = L.layerGroup();
+      for (const p of tripDetail!.places) {
+        const marker = L.marker([p.lat, p.lng], {
+          icon: L.divIcon({ className: "ow-placemk", iconSize: [36, 36], iconAnchor: [18, 18], html: markerHtml(p.photos[0]?.thumbUrl ?? null, p.id === selectedPlaceId, 36) }),
+          zIndexOffset: 500,
+        });
+        marker.on("click", (e: any) => {
+          L.DomEvent.stopPropagation(e);
+          selectPlace(p.id);
+        });
+        placeGroup.addLayer(marker);
+      }
+      map.addLayer(placeGroup);
+    }
+
     return () => {
-      map.removeLayer(group);
+      map.removeLayer(tripGroup);
+      if (placeGroup) map.removeLayer(placeGroup);
     };
   }, [map, memories, tripDetail, focusedTripId, selectedPlaceId, level2, requestEnterTrip, selectPlace]);
 
