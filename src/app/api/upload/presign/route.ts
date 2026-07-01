@@ -15,12 +15,7 @@ export async function POST(req: NextRequest) {
   if (!Array.isArray(files) || files.length === 0) {
     return NextResponse.json({ error: "files[] required" }, { status: 400 });
   }
-  // if (files.length > 80) {
-  //   return NextResponse.json(
-  //     { error: "Tối đa 80 ảnh mỗi lần — hãy chia thành nhiều lần upload." },
-  //     { status: 400 },
-  //   );
-  // }
+  // No hard cap on count — the client uploads in chunks with limited concurrency.
 
   const spaceId = getConfig().defaultSpaceId;
   const storage = getStorage();
