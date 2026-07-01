@@ -71,16 +71,8 @@ export default function TimelineBar() {
     if (active) el.scrollLeft = active.offsetLeft - el.clientWidth / 2 + active.clientWidth / 2;
   }, [activeId, zoom, level2]);
 
-  // small journey: ride the places inside the current trip
-  function ridePlaces() {
-    if (!tripDetail) return;
-    const stops = tripDetail.places
-      .filter((p) => typeof p.lat === "number")
-      .map((p) => ({ id: p.id, tripId: tripDetail.trip.id, lat: p.lat, lng: p.lng, title: p.placeName || p.title }));
-    if (stops.length > 1) startJourney(stops, "places");
-  }
-
-  // big journey: ride between trips (prefetch each trip's places for its detail card)
+  // big journey: ride between the trips (big mốc). Prefetch each trip's places so
+  // the trip detail card is ready when we stop at it.
   async function playBigTrips() {
     const details = await Promise.all(memories.map((m) => fetch(`/api/memories/${m.id}`).then((r) => r.json())));
     cacheTrips(details);
@@ -115,12 +107,6 @@ export default function TimelineBar() {
           <button className="ow-tl-play" onClick={playBigTrips}>
             <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M7 5v14l12-7z" /></svg>
             Chuyến đi
-          </button>
-        )}
-        {level2 && beads.length > 1 && !playing && (
-          <button className="ow-tl-play" onClick={ridePlaces}>
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M7 5v14l12-7z" /></svg>
-            Hành trình trong chuyến
           </button>
         )}
         <div className="ow-tl-zoom">

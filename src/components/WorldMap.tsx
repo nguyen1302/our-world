@@ -203,11 +203,11 @@ function JourneyController() {
       const s = stops[index];
       if (!s) return;
       if (mode === "trips") {
-        // big journey: stop at each trip and show its detail card
+        // big journey: stop at each trip (big mốc) and show its detail card
         enterTripById(s.id);
         map.flyTo([s.lat, s.lng], 11, { duration: 1.3, easeLinearity: 0.2 });
       } else {
-        // small journey: stop at each place within the current trip
+        // small journey: stop at each place (small mốc) inside the current trip
         selectPlace(s.id);
         map.flyTo([s.lat, s.lng], 14, { duration: 1.3, easeLinearity: 0.2 });
       }
