@@ -25,4 +25,8 @@ jobs:
           script: |
             set -e
             cd ${{ secrets.APP_DIR || '/opt/apps/our-world' }}
-            bash scripts/deploy.sh
+            git fetch --all --prune
+            git reset --hard origin/main
+            docker compose up -d --build web worker
+            docker image prune -f || true
+            docker compose ps
