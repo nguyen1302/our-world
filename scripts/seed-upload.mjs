@@ -10,7 +10,7 @@ async function main() {
   });
   const cookie = login.headers.get("set-cookie").split(";")[0];
 
-  const names = readdirSync("/tmp/seed").filter((f) => f.endsWith(".jpg"));
+  const names = readdirSync("/tmp/seed").filter((f) => /\.(jpe?g)$/i.test(f));
   const files = names.map((n) => readFileSync(`/tmp/seed/${n}`));
   console.log("uploading", names.length, "files");
 

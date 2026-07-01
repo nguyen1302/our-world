@@ -296,8 +296,10 @@ function JourneyController() {
 export default function WorldMap() {
   const memories = useMapStore((s) => s.memories);
   const showRoute = useMapStore((s) => s.showRoute);
+  const focusedTripId = useMapStore((s) => s.focusedTripId);
+  const tripDetail = useMapStore((s) => s.tripDetail);
 
-  // stable route = the journey between trips (doesn't blink when drilling in/out)
+  // big route (gold) = journey between trips
   const routePoints = useMemo(
     () =>
       [...memories]
@@ -305,6 +307,13 @@ export default function WorldMap() {
         .map((m) => [m.lat, m.lng] as [number, number]),
     [memories],
   );
+  // small route (rose) = journey between the current trip's places
+  const placeRoutePoints = useMemo(() => {
+    if (!focusedTripId || !tripDetail) return [];
+    return [...tripDetail.places]
+      .sort((a, b) => a.startAt.localeCompare(b.startAt))
+      .map((p) => [p.lat, p.lng] as [number, number]);
+  }, [focusedTripId, tripDetail]);
 
   return (
     <MapContainer center={VN_CENTER} zoom={VN_ZOOM} className="ow-map" scrollWheelZoom zoomControl={false} preferCanvas>
@@ -324,6 +333,9 @@ export default function WorldMap() {
       />
       {showRoute && routePoints.length > 1 ? (
         <Polyline positions={routePoints} pathOptions={{ color: GOLD, weight: 2.4, opacity: 0.65, dashArray: "1 9", lineCap: "round" }} />
+      ) : null}
+      {showRoute && placeRoutePoints.length > 1 ? (
+        <Polyline positions={placeRoutePoints} pathOptions={{ color: ROSE, weight: 2.6, opacity: 0.8, dashArray: "1 8", lineCap: "round" }} />
       ) : null}
       <MarkersLayer />
       <FocusController />
