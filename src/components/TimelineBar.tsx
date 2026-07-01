@@ -43,16 +43,16 @@ export default function TimelineBar() {
     return { xOf, totalW };
   }, [beads, effZoom]);
 
+  // Year markers: a "new year" divider placed at the Jan-1 boundary between years
+  // (not on a trip bead). The first year shows a start label at the first bead.
   const ticks = useMemo(() => {
-    if (!geom) return [];
-    const seen: Record<string, boolean> = {};
-    const out: { label: string; x: number }[] = [];
-    for (const b of beads) {
-      const y = b.startAt.slice(0, 4);
-      if (!seen[y]) {
-        seen[y] = true;
-        out.push({ label: y, x: geom.xOf(b.startAt) });
-      }
+    if (!geom || beads.length === 0) return [];
+    const out: { label: string; x: number; boundary: boolean }[] = [];
+    const firstY = Number(beads[0].startAt.slice(0, 4));
+    const lastY = Number(beads[beads.length - 1].startAt.slice(0, 4));
+    out.push({ label: String(firstY), x: geom.xOf(beads[0].startAt), boundary: false });
+    for (let y = firstY + 1; y <= lastY; y++) {
+      out.push({ label: String(y), x: geom.xOf(`${y}-01-01T00:00:00Z`), boundary: true });
     }
     return out;
   }, [beads, geom]);
@@ -107,12 +107,18 @@ export default function TimelineBar() {
         <div className="ow-tlbar__track" ref={trackRef}>
           <div className="ow-tlbar__inner" style={{ width: geom!.totalW }}>
             <div className="ow-tl-axis" />
-            {ticks.map((t, i) => (
-              <div className="ow-tltick" key={i} style={{ left: t.x - 18 }}>
-                <div className="ow-tltick__line" />
-                <div className="ow-tltick__label">{t.label}</div>
-              </div>
-            ))}
+            {ticks.map((t, i) =>
+              t.boundary ? (
+                <div className="ow-tlyear" key={i} style={{ left: t.x }}>
+                  <div className="ow-tlyear__line" />
+                  <div className="ow-tlyear__chip">🎆 {t.label}</div>
+                </div>
+              ) : (
+                <div className="ow-tltick" key={i} style={{ left: t.x - 18 }}>
+                  <div className="ow-tltick__label">{t.label}</div>
+                </div>
+              ),
+            )}
             {beads.map((b) => {
               const active = b.id === activeId;
               return (

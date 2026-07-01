@@ -118,9 +118,12 @@ body { font-family: var(--sans); -webkit-font-smoothing: antialiased; text-rende
 .ow-tlbar__track { position: relative; overflow-x: auto; overflow-y: hidden; height: 84px; }
 .ow-tlbar__inner { position: relative; height: 100%; }
 .ow-tl-axis { position: absolute; left: 0; right: 0; top: 31px; height: 2px; background: linear-gradient(90deg, transparent, rgba(233,184,114,.3) 6%, rgba(233,184,114,.3) 94%, transparent); }
-.ow-tltick { position: absolute; top: 40px; width: 36px; z-index: 1; }
-.ow-tltick__line { width: 1px; height: 14px; background: rgba(240,235,220,.25); margin: 0 auto; }
-.ow-tltick__label { font-family: var(--serif); font-size: 12px; color: #c9d2c9; text-align: center; margin-top: 3px; }
+.ow-tltick { position: absolute; top: 40px; width: 36px; z-index: 1; transform: translateX(-50%); }
+.ow-tltick__label { font-family: var(--serif); font-size: 12px; color: #9aa69b; text-align: center; }
+/* new-year boundary divider */
+.ow-tlyear { position: absolute; top: 0; bottom: 0; z-index: 2; transform: translateX(-50%); display: flex; flex-direction: column; align-items: center; pointer-events: none; }
+.ow-tlyear__line { position: absolute; top: 4px; bottom: 4px; width: 2px; background: repeating-linear-gradient(to bottom, var(--gold) 0 4px, transparent 4px 9px); opacity: .5; }
+.ow-tlyear__chip { position: relative; margin-top: 2px; font-family: var(--serif); font-weight: 700; font-size: 11px; color: #1a1310; background: linear-gradient(135deg, var(--gold), var(--rose)); border-radius: 999px; padding: 2px 9px; white-space: nowrap; box-shadow: 0 2px 8px rgba(233,184,114,.4); }
 .ow-tlbead { position: absolute; top: 12px; transform: translateX(-50%); display: flex; flex-direction: column; align-items: center; cursor: pointer; }
 .ow-tlbead__thumb { width: 34px; height: 34px; border-radius: 50%; padding: 2px; box-sizing: border-box; background: rgba(240,235,220,.3); box-shadow: 0 2px 8px rgba(0,0,0,.4); }
 .ow-tlbead__thumb img { width: 100%; height: 100%; object-fit: cover; border-radius: 50%; display: block; }

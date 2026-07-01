@@ -1,16 +1,6 @@
 "use client";
 import { useState } from "react";
 
-async function rethumbAll(onProgress: (msg: string) => void, onDone: () => void) {
-  for (let i = 0; i < 100; i++) {
-    const r = await fetch("/api/admin/rethumb", { method: "POST" }).then((x) => x.json());
-    if (!r || typeof r.remaining !== "number") break;
-    onProgress(`Đang tạo lại ảnh… còn ${r.remaining}`);
-    if (r.remaining === 0 || r.fixed === 0) break;
-  }
-  onDone();
-}
-
 export default function TopMenu({
   isAdmin,
   onUploaded,
@@ -27,7 +17,7 @@ export default function TopMenu({
   onImport: () => void;
 }) {
   const [open, setOpen] = useState(false);
-  const [rethumbMsg, setRethumbMsg] = useState("");
+  const [backfillMsg, setBackfillMsg] = useState("");
 
   return (
     <div className="ow-menu">
@@ -53,28 +43,15 @@ export default function TopMenu({
           {isAdmin && (
             <button
               className="ow-menu__item"
-              onClick={() =>
-                rethumbAll(setRethumbMsg, () => {
-                  setRethumbMsg("");
-                  onUploaded();
-                })
-              }
-            >
-              {rethumbMsg || "🖼️ Tạo lại ảnh lỗi"}
-            </button>
-          )}
-          {isAdmin && (
-            <button
-              className="ow-menu__item"
               onClick={async () => {
-                setRethumbMsg("Đang cập nhật tỉnh…");
+                setBackfillMsg("Đang cập nhật tỉnh…");
                 await fetch("/api/admin/backfill", { method: "POST" }).catch(() => {});
-                setRethumbMsg("");
+                setBackfillMsg("");
                 setOpen(false);
                 onUploaded();
               }}
             >
-              📍 Cập nhật tỉnh thành
+              {backfillMsg || "📍 Cập nhật tỉnh thành"}
             </button>
           )}
           <button className="ow-menu__item ow-menu__item--logout" onClick={() => { setOpen(false); onLogout(); }}>

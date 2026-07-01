@@ -231,7 +231,10 @@ export default function MemoryCard({
 
   // ---- Trip card (level 1 -> big mốc: all photos + place list) ----
   const trip = tripDetail.trip;
-  const allPhotos = tripDetail.places.flatMap((p) => p.photos);
+  // carry each photo's owning place id so edit actions know which place to touch
+  const allPhotos = tripDetail.places.flatMap((p) => p.photos.map((ph) => ({ ...ph, memoryId: p.id })));
+  const photoMemory = (pid: string) => (allPhotos.find((x) => x.id === pid) as any)?.memoryId as string | undefined;
+  const firstPlaceId = tripDetail.places[0]?.id;
   const badge = [trip.city, trip.country].filter(Boolean).join(", ");
   const multiPlace = tripDetail.places.length > 1;
   return (
@@ -276,8 +279,24 @@ export default function MemoryCard({
           </>
         )}
 
-        <div className="ow-card__albumlabel">Tất cả ảnh · {allPhotos.length}</div>
-        <Gallery photos={allPhotos} onOpen={(i) => setLightbox({ photos: allPhotos, i })} />
+        <div className="ow-album-head">
+          <span className="ow-card__albumlabel">Tất cả ảnh · {allPhotos.length}</span>
+          {isAdmin && (
+            <div className="ow-album-tools">
+              {firstPlaceId && <button className="ow-minibtn" onClick={() => onAddToPlace(firstPlaceId)}>➕ Thêm ảnh</button>}
+              <button className={`ow-minibtn ${editMode ? "ow-minibtn--on" : ""}`} onClick={() => setEditMode((e) => !e)}>
+                {editMode ? "Xong" : "✎ Sửa"}
+              </button>
+            </div>
+          )}
+        </div>
+        <Gallery
+          photos={allPhotos}
+          onOpen={(i) => setLightbox({ photos: allPhotos, i })}
+          admin={isAdmin && editMode}
+          onSetCover={(pid) => { const m = photoMemory(pid); if (m) setCover(m, pid); }}
+          onDelete={deletePhoto}
+        />
 
         {isAdmin && (
           <div className="ow-card__actions">

@@ -252,7 +252,7 @@ function JourneyController() {
     const index = isSmall ? smallIndex : bigIndex;
     if (stops.length === 0) return;
 
-    const STOP_ZOOM = isSmall ? 14 : 13; // comfortable "see the place" zoom
+    const STOP_ZOOM = isSmall ? 16 : 15; // arrive close (street level)
 
     if (phase === "paused") {
       const s = stops[index];
@@ -267,10 +267,7 @@ function JourneyController() {
           useSmallJourney.getState().start(placeStops);
         }
       }
-      // arrive at the stop WITHOUT zooming out: keep current zoom if it's already
-      // close-in, otherwise ease to STOP_ZOOM. Never zoom further out than now.
-      const targetZoom = Math.max(map.getZoom(), STOP_ZOOM - 1);
-      map.flyTo([s.lat, s.lng], Math.min(targetZoom, STOP_ZOOM), { duration: 1.1, easeLinearity: 0.25 });
+      map.flyTo([s.lat, s.lng], STOP_ZOOM, { duration: 1.1, easeLinearity: 0.25 });
       place(s.lat, s.lng, segVehicle(stops, Math.max(0, index - 1)), false);
       return;
     }
@@ -282,21 +279,22 @@ function JourneyController() {
     const type = vehicleForDistance(km);
     const flip = to.lng < from.lng;
 
-    // Fixed-zoom, pan-follow: only zoom OUT if the two points don't both fit at
-    // STOP_ZOOM (i.e. genuinely far). Near hops keep the zoom → no jarring out-in.
+    // Frame BOTH endpoints (static during travel) so the destination is always
+    // visible and the vehicle visibly crosses the screen. maxZoom caps how close
+    // near hops get (so a short trip still shows a nice visible path).
     const bounds = L.latLngBounds([from.lat, from.lng], [to.lat, to.lng]);
-    const fitZoom = map.getBoundsZoom(bounds, false, L.point(80, 80));
-    const legZoom = Math.min(STOP_ZOOM, fitZoom);
-    const willFollow = legZoom >= map.getZoom() - 0.05; // near enough to pan-follow
-
-    if (!willFollow) {
-      // far leg: ease out to frame both, then keep vehicle within the static view
-      map.flyTo([(from.lat + to.lat) / 2, (from.lng + to.lng) / 2], legZoom, { duration: 1.2, easeLinearity: 0.25 });
-    }
+    const { padX, padY, leftPad } = padFor(map);
+    map.flyToBounds(bounds, {
+      paddingTopLeft: [leftPad, Math.max(padY, 100)],
+      paddingBottomRight: [padX, Math.max(padY, 200)],
+      maxZoom: 16, // near legs zoom in enough to spread the two points out
+      duration: 1.2,
+      easeLinearity: 0.25,
+    });
     place(from.lat, from.lng, type, flip);
 
     timerRef.current = setTimeout(() => {
-      const dur = 2400 + Math.min(km * 3, 2200);
+      const dur = 2600 + Math.min(km * 3, 2400);
       const startTs = performance.now();
       let lastSpawn = 0;
       const ease = (t: number) => (t < 0.5 ? 2 * t * t : 1 - Math.pow(-2 * t + 2, 2) / 2);
@@ -307,8 +305,6 @@ function JourneyController() {
         const lat = from.lat + (to.lat - from.lat) * e;
         const lng = from.lng + (to.lng - from.lng) * e;
         markerRef.current?.setLatLng([lat, lng]);
-        // pan-follow the vehicle at constant zoom for near legs
-        if (willFollow) map.panTo([lat, lng], { animate: false });
         if (now - lastSpawn > (type === "plane" ? 240 : 140)) {
           lastSpawn = now;
           spawnFX(lat, lng, type);
@@ -317,7 +313,7 @@ function JourneyController() {
         else (isSmall ? useSmallJourney : useBigJourney).getState().arrive();
       };
       rafRef.current = requestAnimationFrame(step);
-    }, willFollow ? 300 : 1400);
+    }, 1400); // let the frame-both fly finish before the vehicle sets off
 
     return cancel;
     // eslint-disable-next-line react-hooks/exhaustive-deps
