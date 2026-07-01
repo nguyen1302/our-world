@@ -1,5 +1,6 @@
 "use client";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { useMapStore, type Place } from "./mapStore";
 import { useSmallJourney } from "./journeyStore";
 
@@ -94,7 +95,15 @@ function Gallery({
   );
 }
 
-export default function MemoryCard({ isAdmin, onChanged }: { isAdmin: boolean; onChanged: () => void }) {
+export default function MemoryCard({
+  isAdmin,
+  onChanged,
+  onAddToPlace,
+}: {
+  isAdmin: boolean;
+  onChanged: () => void;
+  onAddToPlace: (memoryId: string) => void;
+}) {
   const focusedTripId = useMapStore((s) => s.focusedTripId);
   const tripDetail = useMapStore((s) => s.tripDetail);
   const selectedPlaceId = useMapStore((s) => s.selectedPlaceId);
@@ -106,6 +115,7 @@ export default function MemoryCard({ isAdmin, onChanged }: { isAdmin: boolean; o
   const refreshTripDetail = useMapStore((s) => s.refreshTripDetail);
   const startJourney = useSmallJourney((s) => s.start);
   const [lightbox, setLightbox] = useState<{ photos: { id: string; thumbUrl: string | null }[]; i: number } | null>(null);
+  const [editMode, setEditMode] = useState(false);
 
   const place: Place | undefined = useMemo(
     () => tripDetail?.places.find((p) => p.id === selectedPlaceId),
@@ -171,11 +181,23 @@ export default function MemoryCard({ isAdmin, onChanged }: { isAdmin: boolean; o
             <span>{dateRange(place.startAt, place.endAt)}</span>
           </div>
           <EditableDesc value={place.description} isAdmin={isAdmin} onSave={(v) => { updatePlaceLocal(place.id, { description: v }); patchPlace(place.id, { description: v }); }} />
-          <div className="ow-card__albumlabel">Địa điểm · {place.photos.length} ảnh</div>
+
+          <div className="ow-album-head">
+            <span className="ow-card__albumlabel">Địa điểm · {place.photos.length} ảnh</span>
+            {isAdmin && (
+              <div className="ow-album-tools">
+                <button className="ow-minibtn" onClick={() => onAddToPlace(place.id)}>➕ Thêm ảnh</button>
+                <button className={`ow-minibtn ${editMode ? "ow-minibtn--on" : ""}`} onClick={() => setEditMode((e) => !e)}>
+                  {editMode ? "Xong" : "✎ Sửa"}
+                </button>
+              </div>
+            )}
+          </div>
+
           <Gallery
             photos={place.photos}
             onOpen={(i) => setLightbox({ photos: place.photos, i })}
-            admin={isAdmin}
+            admin={isAdmin && editMode}
             onSetCover={(pid) => setCover(place.id, pid)}
             onDelete={deletePhoto}
           />
@@ -273,8 +295,37 @@ function Lightbox({
   onDelete?: (id: string) => void;
 }) {
   const cur = photos[i];
-  return (
-    <div className="ow-lightbox" onClick={onClose}>
+  const prev = () => onNav((i - 1 + photos.length) % photos.length);
+  const next = () => onNav((i + 1) % photos.length);
+  const touchX = useRef<number | null>(null);
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => setMounted(true), []);
+  useEffect(() => {
+    function onKey(e: KeyboardEvent) {
+      if (e.key === "Escape") onClose();
+      else if (e.key === "ArrowLeft") prev();
+      else if (e.key === "ArrowRight") next();
+    }
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  });
+
+  if (!mounted) return null;
+
+  const node = (
+    <div
+      className="ow-lightbox"
+      onClick={onClose}
+      onTouchStart={(e) => (touchX.current = e.touches[0].clientX)}
+      onTouchEnd={(e) => {
+        if (touchX.current == null || photos.length < 2) return;
+        const dx = e.changedTouches[0].clientX - touchX.current;
+        if (dx > 50) prev();
+        else if (dx < -50) next();
+        touchX.current = null;
+      }}
+    >
       <img className="ow-lightbox__img" src={cur?.thumbUrl ?? ""} alt="" onClick={(e) => e.stopPropagation()} />
 
       <div className="ow-lightbox__top" onClick={(e) => e.stopPropagation()}>
@@ -294,14 +345,15 @@ function Lightbox({
 
       {photos.length > 1 && (
         <>
-          <button className="ow-lightbox__arrow ow-lightbox__arrow--l" onClick={(e) => { e.stopPropagation(); onNav((i - 1 + photos.length) % photos.length); }}>
+          <button className="ow-lightbox__arrow ow-lightbox__arrow--l" onClick={(e) => { e.stopPropagation(); prev(); }}>
             <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M15 5l-7 7 7 7" /></svg>
           </button>
-          <button className="ow-lightbox__arrow ow-lightbox__arrow--r" onClick={(e) => { e.stopPropagation(); onNav((i + 1) % photos.length); }}>
+          <button className="ow-lightbox__arrow ow-lightbox__arrow--r" onClick={(e) => { e.stopPropagation(); next(); }}>
             <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M9 5l7 7-7 7" /></svg>
           </button>
         </>
       )}
     </div>
   );
+  return createPortal(node, document.body);
 }

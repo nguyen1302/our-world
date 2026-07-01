@@ -13,6 +13,9 @@ export async function POST(req: NextRequest) {
 
   const body = await req.json().catch(() => null);
   const keys = body?.keys;
+  // Optional: attach no-GPS photos to this place (memory) instead of "needs_review".
+  const fallbackMemoryId: string | undefined =
+    typeof body?.fallbackMemoryId === "string" ? body.fallbackMemoryId : undefined;
   if (!Array.isArray(keys) || keys.length === 0) {
     return NextResponse.json({ error: "keys[] required" }, { status: 400 });
   }
@@ -29,7 +32,7 @@ export async function POST(req: NextRequest) {
       .values({ spaceId, type: "photo", s3KeyOriginal: key, status: "pending" })
       .returning({ id: photos.id });
     const photoId = inserted[0].id;
-    await enqueue("process_photo", { photoId });
+    await enqueue("process_photo", { photoId, fallbackMemoryId });
     created.push(photoId);
   }
 

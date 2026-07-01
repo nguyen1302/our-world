@@ -7,7 +7,7 @@ let running = true;
 async function handle(job: { id: string; type: string; payload: any; attempts: number }) {
   try {
     if (job.type === "process_photo") {
-      await processPhoto(job.payload.photoId);
+      await processPhoto(job.payload.photoId, job.payload.fallbackMemoryId);
     } else {
       throw new Error(`unknown job type: ${job.type}`);
     }

@@ -100,7 +100,7 @@ export default function Home() {
         </div>
       </header>
 
-      <MemoryCard isAdmin={isAdmin} onChanged={refresh} />
+      <MemoryCard isAdmin={isAdmin} onChanged={refresh} onAddToPlace={(mid) => uploaderRef.current?.open(mid)} />
       <JourneyControls />
       <TimelineBar />
 

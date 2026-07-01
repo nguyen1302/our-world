@@ -26,7 +26,9 @@ body { font-family: var(--sans); -webkit-font-smoothing: antialiased; text-rende
 ::-webkit-scrollbar-thumb:hover { background: rgba(240, 235, 220, 0.32); }
 
 .ow-app { position: relative; height: 100dvh; width: 100vw; overflow: hidden; background: var(--ink); }
-.ow-map { position: absolute; inset: 0; height: 100%; width: 100%; z-index: 0; }
+.ow-map { position: absolute; inset: 0; height: 100%; width: 100%; z-index: 0; background: var(--ink); }
+.leaflet-tile { transition: opacity .3s ease; }
+.ow-basetoggle { position: absolute; right: 12px; bottom: calc(var(--tlbar-h) + 22px); z-index: 800; background: var(--surface); backdrop-filter: blur(12px); border: 1px solid var(--line); color: var(--cream); border-radius: 12px; padding: 8px 12px; font-size: 12px; cursor: pointer; box-shadow: var(--shadow); }
 /* vignette */
 .ow-app::after { content: ""; position: absolute; inset: 0; z-index: 1; pointer-events: none; box-shadow: inset 0 0 200px 30px rgba(6, 10, 8, 0.6); }
 
@@ -146,12 +148,16 @@ body { font-family: var(--sans); -webkit-font-smoothing: antialiased; text-rende
 .ow-card__desc { margin: 14px 0 0; font-size: 14px; line-height: 1.68; color: #d8cec0; font-style: italic; font-family: var(--serif); cursor: text; }
 .ow-card__edithint { display: inline-flex; align-items: center; gap: 5px; margin-top: 7px; font-size: 11px; color: var(--muted-2); cursor: text; }
 .ow-card__albumlabel { margin-top: 18px; font-size: 10.5px; letter-spacing: .14em; text-transform: uppercase; color: var(--muted-2); }
-.ow-gallery { margin-top: 11px; display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; }
+.ow-album-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-top: 16px; }
+.ow-album-tools { display: flex; gap: 6px; }
+.ow-minibtn { background: rgba(240,235,220,.06); border: 1px solid var(--line); color: var(--muted); border-radius: 8px; padding: 5px 10px; font-size: 12px; cursor: pointer; font-family: var(--sans); }
+.ow-minibtn--on { background: linear-gradient(135deg, var(--gold), var(--rose)); color: #1a1310; border-color: transparent; font-weight: 700; }
+.ow-gallery { margin-top: 10px; display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; }
 .ow-gcell { position: relative; padding-bottom: 100%; border-radius: 9px; overflow: hidden; background: rgba(240,235,220,.06); }
 .ow-gcell img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; cursor: zoom-in; }
-.ow-gcell__acts { position: absolute; top: 4px; right: 4px; display: flex; gap: 4px; opacity: 0; transition: opacity .15s; }
-.ow-gcell:hover .ow-gcell__acts { opacity: 1; }
-.ow-gcell__acts button { width: 24px; height: 24px; border-radius: 6px; border: none; background: rgba(10,14,11,.75); color: var(--gold); font-size: 12px; cursor: pointer; display: flex; align-items: center; justify-content: center; }
+/* actions only render in edit mode → always visible when present (touch-friendly) */
+.ow-gcell__acts { position: absolute; top: 4px; right: 4px; display: flex; gap: 4px; }
+.ow-gcell__acts button { width: 28px; height: 28px; border-radius: 7px; border: none; background: rgba(10,14,11,.82); color: var(--gold); font-size: 13px; cursor: pointer; display: flex; align-items: center; justify-content: center; }
 .ow-gcell__acts .ow-gcell__del { color: #ff8a8a; }
 .ow-card__ride { display: flex; align-items: center; justify-content: center; gap: 8px; width: 100%; margin-top: 16px; padding: 11px; border: none; border-radius: 12px; cursor: pointer; font-weight: 600; font-family: var(--sans); color: #1a1310; background: linear-gradient(135deg, var(--gold), var(--rose)); box-shadow: 0 6px 18px rgba(233,184,114,.28); }
 .ow-placechips { display: flex; gap: 8px; overflow-x: auto; padding: 4px 0 2px; margin-bottom: 4px; }
@@ -270,24 +276,24 @@ body { font-family: var(--sans); -webkit-font-smoothing: antialiased; text-rende
   .ow-tlbar { left: 8px; right: 8px; bottom: 8px; padding: 10px 12px 8px; }
   .ow-card { top: auto; left: 0; right: 0; bottom: 0; width: 100%; max-width: 100%; max-height: 78vh; border-radius: 22px 22px 0 0; border-left: none; border-right: none; }
 
-  /* Journey panels → lên TRÊN (dưới topbar), full-width, gọn, xếp chồng.
-     Tách khỏi thẻ + timeline ở đáy để không đè nhau. */
+  /* Journey → thanh gọn 1 HÀNG ở TRÊN (dưới topbar): [✕][Chặng x/y · tên…][Tiếp].
+     Bỏ badge + nút nhạc cho gọn; chữ 1 dòng cắt bớt; không xuống dòng. */
   .ow-journey {
     top: calc(var(--topbar-h) + 14px); bottom: auto; left: 8px; right: 8px;
-    transform: none; gap: 8px; padding: 8px 10px; border-radius: 14px;
+    transform: none; gap: 8px; padding: 7px 9px; border-radius: 14px; flex-wrap: nowrap;
   }
-  .ow-journey--small {
-    top: calc(var(--topbar-h) + 74px) !important; bottom: auto !important;
-    transform: none; scale: 1; left: 8px; right: 8px;
-  }
+  .ow-journey--small { top: calc(var(--topbar-h) + 70px) !important; bottom: auto !important; transform: none; scale: 1; left: 8px; right: 8px; }
+  .ow-journey__badge, .ow-journey__mute { display: none; }
   .ow-journey__center { min-width: 0; flex: 1; }
-  .ow-journey__status { font-size: 13px; }
-  .ow-journey__badge { padding: 4px 8px; font-size: 9px; }
-  .ow-journey__badge-ic { display: none; }
-  .ow-journey__exit, .ow-journey__mute { padding: 7px 9px; }
-  .ow-journey__next { padding: 8px 12px; }
+  .ow-journey__step { font-size: 9px; white-space: nowrap; }
+  .ow-journey__status { font-size: 12.5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%; }
+  .ow-journey__exit { padding: 7px 9px; flex-shrink: 0; }
+  .ow-journey__next { padding: 8px 12px; flex-shrink: 0; }
+  .ow-journey__moving { flex-shrink: 0; padding: 8px 10px; }
 
+  .ow-basetoggle { bottom: calc(var(--tlbar-h) + 16px); right: 8px; padding: 7px 10px; }
   .ow-placing { top: calc(var(--topbar-h) + 14px); left: 8px; right: 8px; transform: none; justify-content: center; font-size: 12px; }
   .ow-modal__box, .ow-modal__box--wide { width: 92vw; }
   .ow-unplaced-grid { grid-template-columns: repeat(3, 1fr); }
+  .ow-lightbox__arrow { width: 42px; height: 42px; }
 }

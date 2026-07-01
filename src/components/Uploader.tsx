@@ -28,7 +28,8 @@ async function pool<T>(items: T[], size: number, fn: (item: T, i: number) => Pro
 }
 
 export interface UploaderHandle {
-  open: () => void;
+  // open the picker; pass a place (memory) id to attach no-GPS photos to that place
+  open: (targetMemoryId?: string) => void;
 }
 
 /**
@@ -40,8 +41,14 @@ const Uploader = forwardRef<UploaderHandle, { onUploaded: () => void }>(function
   const [busy, setBusy] = useState(false);
   const [progress, setProgress] = useState("");
   const wakeRef = useRef<any>(null);
+  const targetRef = useRef<string | undefined>(undefined);
 
-  useImperativeHandle(ref, () => ({ open: () => inputRef.current?.click() }));
+  useImperativeHandle(ref, () => ({
+    open: (targetMemoryId?: string) => {
+      targetRef.current = targetMemoryId;
+      inputRef.current?.click();
+    },
+  }));
 
   useEffect(() => {
     async function onVisible() {
@@ -92,7 +99,10 @@ const Uploader = forwardRef<UploaderHandle, { onUploaded: () => void }>(function
             await fetch("/api/upload/complete", {
               method: "POST",
               headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({ keys: [{ key: item.key, contentType: item.contentType }] }),
+              body: JSON.stringify({
+                keys: [{ key: item.key, contentType: item.contentType }],
+                fallbackMemoryId: targetRef.current,
+              }),
             }).catch(() => {});
           } else {
             failed++;
@@ -116,6 +126,7 @@ const Uploader = forwardRef<UploaderHandle, { onUploaded: () => void }>(function
         await wakeRef.current?.release?.();
       } catch {}
       wakeRef.current = null;
+      targetRef.current = undefined;
       if (inputRef.current) inputRef.current.value = "";
     }
   }

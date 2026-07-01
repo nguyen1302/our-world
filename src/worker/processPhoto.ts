@@ -5,9 +5,10 @@ import { getStorage, thumbKey } from "@/lib/storage";
 import { readExif } from "@/lib/exif";
 import { makeThumbnail } from "@/lib/thumbnail";
 import { reverseGeocode } from "@/lib/geocode";
-import { assignPhotoToMemory } from "@/lib/cluster";
+import { assignPhotoToMemory, recomputeMemoryAfterPhotoChange, recomputeTrip } from "@/lib/cluster";
+import { memories } from "@/db/schema";
 
-export async function processPhoto(photoId: string): Promise<void> {
+export async function processPhoto(photoId: string, fallbackMemoryId?: string): Promise<void> {
   const rows = await db.select().from(photos).where(eq(photos.id, photoId)).limit(1);
   const photo = rows[0];
   if (!photo) throw new Error(`photo not found: ${photoId}`);
@@ -29,8 +30,31 @@ export async function processPhoto(photoId: string): Promise<void> {
     tKey = null;
   }
 
-  // No GPS -> cannot auto-place. Keep it (with thumbnail) flagged for manual placing.
+  // No GPS: if this upload targets a specific place (add-to-place), attach it
+  // there; otherwise flag for manual placing.
   if (exif.lat === null || exif.lng === null) {
+    if (fallbackMemoryId) {
+      const m = (await db.select().from(memories).where(eq(memories.id, fallbackMemoryId)).limit(1))[0];
+      if (m) {
+        await db
+          .update(photos)
+          .set({
+            memoryId: m.id,
+            status: "processed",
+            takenAt: exif.takenAt ?? photo.createdAt,
+            lat: m.lat,
+            lng: m.lng,
+            width: exif.width,
+            height: exif.height,
+            s3KeyThumb: tKey,
+            exifJson: { ...(exif as any), manualPlace: true } as any,
+          })
+          .where(eq(photos.id, photoId));
+        const tripId = await recomputeMemoryAfterPhotoChange(m.id);
+        if (tripId) await recomputeTrip(tripId);
+        return;
+      }
+    }
     await db
       .update(photos)
       .set({

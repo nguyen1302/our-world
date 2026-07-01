@@ -1,5 +1,5 @@
 "use client";
-import { useEffect, useMemo, useRef } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { MapContainer, TileLayer, Polyline, useMap, useMapEvents } from "react-leaflet";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
@@ -252,16 +252,14 @@ function JourneyController() {
     const index = isSmall ? smallIndex : bigIndex;
     if (stops.length === 0) return;
 
+    const STOP_ZOOM = isSmall ? 14 : 13; // comfortable "see the place" zoom
+
     if (phase === "paused") {
       const s = stops[index];
       if (!s) return;
-      if (isSmall) {
-        markPlace(s.id);
-        map.flyTo([s.lat, s.lng], 14, { duration: 1.3, easeLinearity: 0.2 });
-      } else {
+      if (isSmall) markPlace(s.id);
+      else {
         enterTripById(s.id);
-        map.flyTo([s.lat, s.lng], 11, { duration: 1.3, easeLinearity: 0.2 });
-        // if this big mốc has several small mốcs, make the small journey ready (paused at #1)
         const d = tripCache[s.id];
         if (d && d.places.length > 1 && !smallPlaying && autoTripRef.current !== s.id) {
           autoTripRef.current = s.id;
@@ -269,6 +267,10 @@ function JourneyController() {
           useSmallJourney.getState().start(placeStops);
         }
       }
+      // arrive at the stop WITHOUT zooming out: keep current zoom if it's already
+      // close-in, otherwise ease to STOP_ZOOM. Never zoom further out than now.
+      const targetZoom = Math.max(map.getZoom(), STOP_ZOOM - 1);
+      map.flyTo([s.lat, s.lng], Math.min(targetZoom, STOP_ZOOM), { duration: 1.1, easeLinearity: 0.25 });
       place(s.lat, s.lng, segVehicle(stops, Math.max(0, index - 1)), false);
       return;
     }
@@ -280,14 +282,17 @@ function JourneyController() {
     const type = vehicleForDistance(km);
     const flip = to.lng < from.lng;
 
-    const { padX, padY, leftPad } = padFor(map);
-    map.flyToBounds(L.latLngBounds([from.lat, from.lng], [to.lat, to.lng]), {
-      paddingTopLeft: [leftPad, Math.max(padY, 90)],
-      paddingBottomRight: [padX, Math.max(padY, 190)],
-      maxZoom: 14,
-      duration: 1.5,
-      easeLinearity: 0.2,
-    });
+    // Fixed-zoom, pan-follow: only zoom OUT if the two points don't both fit at
+    // STOP_ZOOM (i.e. genuinely far). Near hops keep the zoom → no jarring out-in.
+    const bounds = L.latLngBounds([from.lat, from.lng], [to.lat, to.lng]);
+    const fitZoom = map.getBoundsZoom(bounds, false, L.point(80, 80));
+    const legZoom = Math.min(STOP_ZOOM, fitZoom);
+    const willFollow = legZoom >= map.getZoom() - 0.05; // near enough to pan-follow
+
+    if (!willFollow) {
+      // far leg: ease out to frame both, then keep vehicle within the static view
+      map.flyTo([(from.lat + to.lat) / 2, (from.lng + to.lng) / 2], legZoom, { duration: 1.2, easeLinearity: 0.25 });
+    }
     place(from.lat, from.lng, type, flip);
 
     timerRef.current = setTimeout(() => {
@@ -302,6 +307,8 @@ function JourneyController() {
         const lat = from.lat + (to.lat - from.lat) * e;
         const lng = from.lng + (to.lng - from.lng) * e;
         markerRef.current?.setLatLng([lat, lng]);
+        // pan-follow the vehicle at constant zoom for near legs
+        if (willFollow) map.panTo([lat, lng], { animate: false });
         if (now - lastSpawn > (type === "plane" ? 240 : 140)) {
           lastSpawn = now;
           spawnFX(lat, lng, type);
@@ -310,7 +317,7 @@ function JourneyController() {
         else (isSmall ? useSmallJourney : useBigJourney).getState().arrive();
       };
       rafRef.current = requestAnimationFrame(step);
-    }, 1600);
+    }, willFollow ? 300 : 1400);
 
     return cancel;
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -324,6 +331,7 @@ export default function WorldMap({ onPlaced }: { onPlaced?: () => void }) {
   const showRoute = useMapStore((s) => s.showRoute);
   const focusedTripId = useMapStore((s) => s.focusedTripId);
   const tripDetail = useMapStore((s) => s.tripDetail);
+  const [base, setBase] = useState<"satellite" | "light">("satellite");
 
   // big route (gold) = journey between trips
   const routePoints = useMemo(
@@ -342,21 +350,48 @@ export default function WorldMap({ onPlaced }: { onPlaced?: () => void }) {
   }, [focusedTripId, tripDetail]);
 
   return (
-    <MapContainer center={VN_CENTER} zoom={VN_ZOOM} className="ow-map" scrollWheelZoom zoomControl={false} preferCanvas>
-      <TileLayer
-        attribution="Tiles &copy; Esri, Maxar, Earthstar Geographics"
-        url="https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}"
-        maxZoom={18}
-        keepBuffer={6}
-        updateWhenZooming={false}
-      />
-      <TileLayer
-        url="https://server.arcgisonline.com/ArcGIS/rest/services/Reference/World_Boundaries_and_Places/MapServer/tile/{z}/{y}/{x}"
-        maxZoom={18}
-        opacity={0.9}
-        keepBuffer={6}
-        updateWhenZooming={false}
-      />
+    <>
+    <button
+      className="ow-basetoggle"
+      onClick={() => setBase((b) => (b === "satellite" ? "light" : "satellite"))}
+      title="Đổi kiểu bản đồ"
+    >
+      {base === "satellite" ? "🗺️ Bản đồ nhẹ" : "🛰️ Vệ tinh"}
+    </button>
+    <MapContainer center={VN_CENTER} zoom={VN_ZOOM} className="ow-map" scrollWheelZoom zoomControl={false} preferCanvas zoomAnimation>
+      {base === "satellite" ? (
+        <>
+          <TileLayer
+            attribution="Tiles &copy; Esri, Maxar, Earthstar Geographics"
+            url="https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}"
+            maxZoom={18}
+            keepBuffer={8}
+            updateWhenIdle
+            updateWhenZooming={false}
+            className="ow-tiles"
+          />
+          <TileLayer
+            url="https://server.arcgisonline.com/ArcGIS/rest/services/Reference/World_Boundaries_and_Places/MapServer/tile/{z}/{y}/{x}"
+            maxZoom={18}
+            opacity={0.9}
+            keepBuffer={8}
+            updateWhenIdle
+            updateWhenZooming={false}
+            pane="overlayPane"
+          />
+        </>
+      ) : (
+        <TileLayer
+          attribution='&copy; OpenStreetMap &copy; CARTO'
+          url="https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png"
+          subdomains="abcd"
+          maxZoom={20}
+          keepBuffer={8}
+          updateWhenIdle
+          updateWhenZooming={false}
+          className="ow-tiles"
+        />
+      )}
       {showRoute && routePoints.length > 1 ? (
         <Polyline positions={routePoints} pathOptions={{ color: GOLD, weight: 2.4, opacity: 0.65, dashArray: "1 9", lineCap: "round" }} />
       ) : null}
@@ -368,5 +403,6 @@ export default function WorldMap({ onPlaced }: { onPlaced?: () => void }) {
       <JourneyController />
       <PlacingLayer onPlaced={() => onPlaced?.()} />
     </MapContainer>
+    </>
   );
 }
