@@ -75,7 +75,7 @@ function MarkersLayer() {
       placeGroup = L.layerGroup();
       for (const p of tripDetail!.places) {
         const marker = L.marker([p.lat, p.lng], {
-          icon: L.divIcon({ className: "ow-placemk", iconSize: [36, 36], iconAnchor: [18, 18], html: markerHtml(p.photos[0]?.thumbUrl ?? null, p.id === selectedPlaceId, 36) }),
+          icon: L.divIcon({ className: "ow-placemk", iconSize: [36, 36], iconAnchor: [18, 18], html: markerHtml((p.coverPhotoId ? p.photos.find((x) => x.id === p.coverPhotoId) : null)?.thumbUrl ?? p.photos[0]?.thumbUrl ?? null, p.id === selectedPlaceId, 36) }),
           zIndexOffset: 500,
         });
         marker.on("click", (e: any) => {

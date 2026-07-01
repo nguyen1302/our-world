@@ -19,6 +19,11 @@ function fmtFull(iso: string): string {
   const { d, m, y } = vnParts(iso);
   return `${d} Tháng ${m}, ${y}`;
 }
+// thumbnail of the chosen cover photo (falls back to the first photo)
+function coverUrl(photos: { id: string; thumbUrl: string | null }[], coverId: string | null | undefined): string {
+  const c = coverId ? photos.find((p) => p.id === coverId) : null;
+  return (c ?? photos[0])?.thumbUrl ?? "";
+}
 function dateRange(a: string, b: string): string {
   const pa = vnParts(a);
   const pb = vnParts(b);
@@ -164,6 +169,10 @@ export default function MemoryCard({
     await patchPlace(placeId, { coverPhotoId: photoId });
     await reloadTrip();
   }
+  async function setTripCover(photoId: string) {
+    await patchTrip({ coverPhotoId: photoId });
+    await reloadTrip();
+  }
   async function deletePhoto(photoId: string) {
     if (!confirm("Xoá ảnh này? (xoá luôn khỏi lưu trữ, không khôi phục được)")) return;
     await fetch(`/api/photos/${photoId}`, { method: "DELETE" });
@@ -177,7 +186,7 @@ export default function MemoryCard({
     return (
       <div className="ow-card">
         <div className="ow-card__coverwrap">
-          <img className="ow-card__cover" src={place.photos[0]?.thumbUrl ?? ""} alt="" loading="lazy" onClick={() => place.photos.length && setLightbox({ photos: place.photos, i: 0 })} />
+          <img className="ow-card__cover" src={coverUrl(place.photos, place.coverPhotoId)} alt="" loading="lazy" onClick={() => place.photos.length && setLightbox({ photos: place.photos, i: 0 })} />
           <div className="ow-card__coverfade" />
           <div className="ow-card__close" onClick={backToTrip} title="Quay lại chuyến">
             <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M15 5l-7 7 7 7" /></svg>
@@ -233,14 +242,13 @@ export default function MemoryCard({
   const trip = tripDetail.trip;
   // carry each photo's owning place id so edit actions know which place to touch
   const allPhotos = tripDetail.places.flatMap((p) => p.photos.map((ph) => ({ ...ph, memoryId: p.id })));
-  const photoMemory = (pid: string) => (allPhotos.find((x) => x.id === pid) as any)?.memoryId as string | undefined;
   const firstPlaceId = tripDetail.places[0]?.id;
   const badge = [trip.city, trip.country].filter(Boolean).join(", ");
   const multiPlace = tripDetail.places.length > 1;
   return (
     <div className="ow-card">
       <div className="ow-card__coverwrap">
-        <img className="ow-card__cover" src={allPhotos[0]?.thumbUrl ?? ""} alt="" loading="lazy" onClick={() => allPhotos.length && setLightbox({ photos: allPhotos, i: 0 })} />
+        <img className="ow-card__cover" src={coverUrl(allPhotos, trip.coverPhotoId)} alt="" loading="lazy" onClick={() => allPhotos.length && setLightbox({ photos: allPhotos, i: 0 })} />
         <div className="ow-card__coverfade" />
         <div className="ow-card__close" onClick={exitTrip} title="Đóng">
           <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M6 6l12 12M18 6L6 18" /></svg>
@@ -271,7 +279,7 @@ export default function MemoryCard({
             <div className="ow-placechips">
               {tripDetail.places.map((p) => (
                 <button key={p.id} className="ow-placechip" onClick={() => selectPlace(p.id)}>
-                  <img src={p.photos[0]?.thumbUrl ?? ""} alt="" />
+                  <img src={coverUrl(p.photos, p.coverPhotoId)} alt="" />
                   <span>{p.placeName || p.title}</span>
                 </button>
               ))}
@@ -294,7 +302,7 @@ export default function MemoryCard({
           photos={allPhotos}
           onOpen={(i) => setLightbox({ photos: allPhotos, i })}
           admin={isAdmin && editMode}
-          onSetCover={(pid) => { const m = photoMemory(pid); if (m) setCover(m, pid); }}
+          onSetCover={(pid) => setTripCover(pid)}
           onDelete={deletePhoto}
         />
 

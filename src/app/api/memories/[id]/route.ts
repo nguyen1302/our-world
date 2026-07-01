@@ -48,6 +48,7 @@ export async function GET(_req: NextRequest, { params }: { params: { id: string 
         lng: p.lng,
         startAt: p.startAt,
         endAt: p.endAt,
+        coverPhotoId: p.coverPhotoId,
         photos: gallery,
       };
     }),
@@ -64,6 +65,7 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
   const patch: Record<string, unknown> = { updatedAt: new Date() };
   if (typeof body?.title === "string") patch.title = body.title;
   if (typeof body?.description === "string" || body?.description === null) patch.description = body.description;
+  if (typeof body?.coverPhotoId === "string") patch.coverPhotoId = body.coverPhotoId; // manual trip cover
 
   await db.update(trips).set(patch).where(eq(trips.id, params.id));
   return NextResponse.json({ ok: true });

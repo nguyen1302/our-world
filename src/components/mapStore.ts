@@ -29,6 +29,7 @@ export interface Place {
   lng: number;
   startAt: string;
   endAt: string;
+  coverPhotoId: string | null;
   photos: PlacePhoto[];
 }
 export interface TripDetail {
@@ -40,6 +41,7 @@ export interface TripDetail {
     country: string | null;
     startAt: string;
     endAt: string;
+    coverPhotoId: string | null;
   };
   places: Place[];
 }

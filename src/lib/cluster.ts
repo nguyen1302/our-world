@@ -182,6 +182,7 @@ export async function recomputeMemoryAfterPhotoChange(memoryId: string): Promise
     .limit(1);
   const tripId = rows[0]?.tripId ?? null;
 
+  const curMem = (await db.select({ cover: memories.coverPhotoId }).from(memories).where(eq(memories.id, memoryId)).limit(1))[0];
   const pics = await db
     .select({ id: photos.id, takenAt: photos.takenAt })
     .from(photos)
@@ -192,7 +193,9 @@ export async function recomputeMemoryAfterPhotoChange(memoryId: string): Promise
     await db.update(memories).set({ deletedAt: new Date() }).where(eq(memories.id, memoryId));
   } else {
     const times = pics.map((p) => p.takenAt).filter(Boolean) as Date[];
-    const patch: Record<string, unknown> = { coverPhotoId: pics[0].id, updatedAt: new Date() };
+    // keep the manually-chosen cover if it still exists among the photos
+    const cover = curMem?.cover && pics.some((p) => p.id === curMem.cover) ? curMem.cover : pics[0].id;
+    const patch: Record<string, unknown> = { coverPhotoId: cover, updatedAt: new Date() };
     if (times.length) {
       patch.startAt = times.reduce((a, t) => (t < a ? t : a), times[0]);
       patch.endAt = times.reduce((a, t) => (t > a ? t : a), times[0]);
@@ -234,6 +237,18 @@ export async function recomputeTrip(tripId: string): Promise<void> {
   const country = members.find((m) => m.country)?.country ?? null;
   const title = `${city || "Chuyến đi"} · ${formatDateRange(start, end)}`;
 
+  // Keep a manually-chosen trip cover if it still points to a live photo in the trip.
+  const curTrip = (await db.select({ cover: trips.coverPhotoId }).from(trips).where(eq(trips.id, tripId)).limit(1))[0];
+  let cover = earliest.coverPhotoId;
+  if (curTrip?.cover) {
+    const still = await db
+      .select({ id: photos.id })
+      .from(photos)
+      .where(and(eq(photos.id, curTrip.cover), isNull(photos.deletedAt)))
+      .limit(1);
+    if (still.length) cover = curTrip.cover;
+  }
+
   await db
     .update(trips)
     .set({
@@ -244,7 +259,7 @@ export async function recomputeTrip(tripId: string): Promise<void> {
       city,
       provinceCode: province,
       country,
-      coverPhotoId: earliest.coverPhotoId,
+      coverPhotoId: cover,
       title,
       updatedAt: new Date(),
     })
