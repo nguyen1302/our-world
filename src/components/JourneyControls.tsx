@@ -15,7 +15,6 @@ function Panel({
   icon,
   onNext,
   onExit,
-  onJump,
 }: {
   store: JourneyStore;
   variant: "big" | "small";
@@ -24,7 +23,6 @@ function Panel({
   icon: string;
   onNext: () => void;
   onExit: () => void;
-  onJump: (i: number) => void;
 }) {
   const phase = store((s) => s.phase);
   const index = store((s) => s.index);
@@ -52,24 +50,7 @@ function Panel({
         {muted ? "🔇" : "🎵"}
       </div>
       <div className="ow-journey__center">
-        <div className="ow-journey__step">
-          <span>{stepWord} </span>
-          {/* tap the number to jump to / resume at any stop */}
-          <span className="ow-journey__pickwrap">
-            <select
-              className="ow-journey__pick"
-              value={index}
-              onChange={(e) => onJump(Number(e.target.value))}
-              title="Chọn chặng"
-            >
-              {stops.map((s, i) => (
-                <option key={s.id} value={i}>{i + 1}. {s.title}</option>
-              ))}
-            </select>
-            <span className="ow-journey__pickval">{index + 1}</span>
-          </span>
-          <span> / {total}</span>
-        </div>
+        <div className="ow-journey__step">{stepWord} {index + 1} / {total} · chạm timeline để tới chặng khác</div>
         <div className="ow-journey__status">{status}</div>
       </div>
       {paused ? (
@@ -110,16 +91,8 @@ export default function JourneyControls() {
     useBigJourney.getState().exit();
     exitTrip();
   }
-  function bigJump(i: number) {
-    // jumping big trips abandons any small ride so the big controller takes over
-    if (useSmallJourney.getState().playing) useSmallJourney.getState().exit();
-    useBigJourney.getState().jumpTo(i);
-  }
   function smallNext() {
     useSmallJourney.getState().next();
-  }
-  function smallJump(i: number) {
-    useSmallJourney.getState().jumpTo(i);
   }
   function smallExit() {
     useSmallJourney.getState().exit();
@@ -132,8 +105,8 @@ export default function JourneyControls() {
       <button className="ow-jdetail-btn" onClick={toggleDetail}>
         {detailOpen ? "▾ Ẩn chi tiết" : "▸ Chi tiết"}
       </button>
-      {bigPlaying && <Panel store={useBigJourney} variant="big" badge="Mốc lớn · Chuyến đi" icon="✦" stepWord="Chặng" onNext={bigNext} onExit={bigExit} onJump={bigJump} />}
-      {smallPlaying && <Panel store={useSmallJourney} variant="small" badge="Mốc nhỏ · Trong chuyến" icon="↳" stepWord="Điểm" onNext={smallNext} onExit={smallExit} onJump={smallJump} />}
+      {bigPlaying && <Panel store={useBigJourney} variant="big" badge="Mốc lớn · Chuyến đi" icon="✦" stepWord="Chặng" onNext={bigNext} onExit={bigExit} />}
+      {smallPlaying && <Panel store={useSmallJourney} variant="small" badge="Mốc nhỏ · Trong chuyến" icon="↳" stepWord="Điểm" onNext={smallNext} onExit={smallExit} />}
     </>
   );
 }

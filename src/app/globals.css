@@ -131,6 +131,8 @@ body { font-family: var(--sans); -webkit-font-smoothing: antialiased; text-rende
 .ow-tlbead__label { font-size: 10.5px; margin-top: 6px; white-space: nowrap; text-align: center; line-height: 1; color: var(--muted); font-weight: 500; }
 .ow-tlbead--active .ow-tlbead__thumb { width: 40px; height: 40px; background: linear-gradient(135deg, var(--gold), var(--rose)); box-shadow: 0 0 16px var(--gold); }
 .ow-tlbead--active .ow-tlbead__label { color: var(--gold); font-weight: 600; }
+/* while placing unplaced photos, beads hint they're a drop target */
+.ow-tlbead--placing .ow-tlbead__thumb { outline: 2px dashed var(--gold); outline-offset: 2px; }
 .ow-tlvehicle { position: absolute; left: 0; top: 6px; width: 52px; height: 33px; z-index: 6; pointer-events: none; display: none; will-change: transform; filter: drop-shadow(0 0 2px rgba(255,250,240,.7)) drop-shadow(0 3px 4px rgba(0,0,0,.4)); }
 .ow-tlempty { display: flex; align-items: center; justify-content: center; height: 60px; color: var(--muted-2); font-style: italic; font-family: var(--serif); }
 
@@ -187,17 +189,6 @@ body { font-family: var(--sans); -webkit-font-smoothing: antialiased; text-rende
 .ow-journey__exit, .ow-journey__mute { display: flex; align-items: center; gap: 7px; cursor: pointer; color: #d8cec0; font-size: 13px; padding: 7px 12px; border-radius: 11px; border: 1px solid var(--line); background: rgba(240,235,220,.04); }
 .ow-journey__center { display: flex; flex-direction: column; align-items: center; min-width: 150px; }
 .ow-journey__step { font-size: 10px; letter-spacing: .14em; text-transform: uppercase; color: var(--gold); }
-/* the stage number is a tappable jump-to picker: an invisible <select> sits on top
-   of the styled number, so tapping it opens the native stop picker */
-.ow-journey__pickwrap { position: relative; display: inline-block; }
-.ow-journey__pickval {
-  display: inline-block; min-width: 1.2em; text-align: center; font-weight: 700;
-  color: var(--cream); border-bottom: 1px dashed var(--gold); padding: 0 3px; cursor: pointer;
-}
-.ow-journey__pick {
-  position: absolute; inset: 0; width: 100%; height: 100%;
-  opacity: 0; cursor: pointer; -webkit-appearance: none; appearance: none; border: 0; font-size: 16px;
-}
 .ow-journey__status { font-family: var(--serif); font-size: 15px; color: var(--cream); margin-top: 3px; text-align: center; }
 .ow-journey__next { display: flex; align-items: center; gap: 7px; cursor: pointer; padding: 9px 16px; border-radius: 12px; font-size: 13.5px; font-weight: 600; color: #1a1310; background: linear-gradient(135deg, var(--gold), var(--rose)); box-shadow: 0 6px 18px rgba(233,184,114,.25); border: none; font-family: var(--sans); }
 .ow-journey__next:disabled { opacity: .6; cursor: default; }
@@ -278,12 +269,13 @@ body { font-family: var(--sans); -webkit-font-smoothing: antialiased; text-rende
   :root { --tlbar-h: 116px; }
 
   /* Top: slim, one row — brand + minimal chips + menu. Map stays the hero. */
-  .ow-topbar { top: 8px; left: 8px; right: 8px; padding: 8px 10px; gap: 6px; }
-  .ow-brand { padding: 7px 11px; }
-  .ow-brand__name { font-size: 15px; white-space: nowrap; }
+  .ow-topbar { top: 8px; left: 8px; right: 8px; padding: 8px 10px; gap: 6px; align-items: flex-start; }
+  .ow-brand { padding: 6px 10px; flex-shrink: 0; }   /* never let the logo get covered */
+  .ow-brand__name { font-size: 14px; white-space: nowrap; }
   .ow-brand__sub { display: none; }
-  .ow-topright { max-width: none; gap: 6px; flex-wrap: nowrap; }
-  .ow-topright > * { height: 40px; }
+  /* overflow chips wrap to a new row instead of sliding over the logo */
+  .ow-topright { max-width: none; gap: 6px; flex-wrap: wrap; }
+  .ow-topright > * { height: 38px; }
   .ow-stats { padding: 6px 2px; }
   .ow-stat { padding: 0 7px; }
   .ow-stat__l { display: none; }
@@ -318,24 +310,31 @@ body { font-family: var(--sans); -webkit-font-smoothing: antialiased; text-rende
   .ow-journey__next { padding: 9px 13px; flex-shrink: 0; }
   .ow-journey__moving { flex-shrink: 0; padding: 8px 10px; }
 
-  /* MAP-FIRST during journey: hide top bar, timeline and card → vehicle fully visible */
-  .ow-app--journey .ow-topbar,
-  .ow-app--journey .ow-tlbar,
+  /* During journey: hide the top bar + card, but KEEP a compact timeline so its beads
+     stay tappable — tapping a bead drives the vehicle to that chặng. */
+  .ow-app--journey .ow-topbar { display: none; }
   .ow-app--journey .ow-card { display: none; }
+  .ow-app--journey .ow-tl-head { display: none; }        /* hide title/play/zoom row */
+  .ow-app--journey .ow-tlbar {
+    left: 8px; right: 8px; bottom: 74px;                 /* sit just above the journey bar */
+    padding: 6px 8px; background: rgba(16,22,18,.62);
+  }
+  .ow-app--journey .ow-tlbar__track { height: 66px; }
+  /* inside a small (place) ride, the big-stop timeline doesn't apply → hide it */
+  .ow-app--smalljourney .ow-tlbar { display: none; }
 
-  /* '▸ Chi tiết' toggle: ONLY during a journey (never in normal timeline mode),
-     docked just above the bottom journey bar and staying put in both states so it
-     never floats over the map or overlaps the detail sheet. */
+  /* '▸ Chi tiết' toggle: ONLY during a journey, docked TOP-center (top bar is hidden,
+     so there's room) — never over the map or the bottom cluster. */
   .ow-app--journey .ow-jdetail-btn {
     display: block; position: absolute; z-index: 1250; left: 50%; transform: translateX(-50%);
-    bottom: 112px; background: var(--surface-solid); backdrop-filter: blur(12px);
+    top: 12px; bottom: auto; background: var(--surface-solid); backdrop-filter: blur(12px);
     border: 1px solid var(--line); color: var(--cream); border-radius: 999px;
     padding: 7px 16px; font-size: 12.5px; cursor: pointer; box-shadow: 0 6px 18px rgba(0,0,0,.35);
   }
-  /* when detail toggled on: show the stop card as a top sheet, map + bar still visible */
+  /* detail sheet drops from the top, UNDER the toggle; scrolls if long (no cut-off) */
   .ow-app--journey.ow-app--jdetail .ow-card {
-    display: block; top: calc(var(--topbar-h) - 6px); bottom: auto;
-    left: 8px; right: 8px; width: auto; max-height: 44vh; border-radius: 18px;
+    display: block; top: 52px; bottom: auto; left: 8px; right: 8px;
+    width: auto; max-height: 46vh; overflow-y: auto; border-radius: 18px;
   }
 
   .ow-placing { top: calc(var(--topbar-h) + 14px); left: 8px; right: 8px; transform: none; justify-content: center; font-size: 12px; }

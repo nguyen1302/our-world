@@ -64,8 +64,25 @@ function MarkersLayer() {
       const marker = L.marker([m.lat, m.lng], {
         icon: L.divIcon({ className: "", iconSize: [44, 44], iconAnchor: [22, 22], html: markerHtml(m.coverThumbUrl, false, 44) }),
       });
-      marker.on("click", (e: any) => {
+      marker.on("click", async (e: any) => {
         L.DomEvent.stopPropagation(e);
+        // placing unplaced photos → add the selection straight into this trip
+        const st = useMapStore.getState();
+        if (st.placingPhotoIds.length) {
+          const ids = st.placingPhotoIds;
+          st.cancelPlacing();
+          await Promise.all(
+            ids.map((id) =>
+              fetch(`/api/photos/${id}/locate`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ tripId: m.id }),
+              }).catch(() => null),
+            ),
+          );
+          window.dispatchEvent(new Event("ow:refresh"));
+          return;
+        }
         // during a guided journey the controller owns the camera — a stray tap must
         // NOT drill in / retarget the camera (that's what "văng ra" mid-journey was)
         if (useBigJourney.getState().playing || useSmallJourney.getState().playing) return;
@@ -84,8 +101,24 @@ function MarkersLayer() {
           icon: L.divIcon({ className: "ow-placemk", iconSize: [36, 36], iconAnchor: [18, 18], html: markerHtml((p.coverPhotoId ? p.photos.find((x) => x.id === p.coverPhotoId) : null)?.thumbUrl ?? p.photos[0]?.thumbUrl ?? null, p.id === selectedPlaceId, 36) }),
           zIndexOffset: 500,
         });
-        marker.on("click", (e: any) => {
+        marker.on("click", async (e: any) => {
           L.DomEvent.stopPropagation(e);
+          const st = useMapStore.getState();
+          if (st.placingPhotoIds.length) {
+            const ids = st.placingPhotoIds;
+            st.cancelPlacing();
+            await Promise.all(
+              ids.map((id) =>
+                fetch(`/api/photos/${id}/locate`, {
+                  method: "POST",
+                  headers: { "Content-Type": "application/json" },
+                  body: JSON.stringify({ memoryId: p.id }),
+                }).catch(() => null),
+              ),
+            );
+            window.dispatchEvent(new Event("ow:refresh"));
+            return;
+          }
           if (useBigJourney.getState().playing || useSmallJourney.getState().playing) return;
           selectPlace(p.id);
         });
@@ -183,10 +216,12 @@ function JourneyController() {
   const bigPlaying = useBigJourney((s) => s.playing);
   const bigPhase = useBigJourney((s) => s.phase);
   const bigIndex = useBigJourney((s) => s.index);
+  const bigTarget = useBigJourney((s) => s.target);
   const bigStops = useBigJourney((s) => s.stops);
   const smallPlaying = useSmallJourney((s) => s.playing);
   const smallPhase = useSmallJourney((s) => s.phase);
   const smallIndex = useSmallJourney((s) => s.index);
+  const smallTarget = useSmallJourney((s) => s.target);
   const smallStops = useSmallJourney((s) => s.stops);
 
   const markerRef = useRef<L.Marker | null>(null);
@@ -263,6 +298,7 @@ function JourneyController() {
     const stops = isSmall ? smallStops : bigStops;
     const phase = isSmall ? smallPhase : bigPhase;
     const index = isSmall ? smallIndex : bigIndex;
+    const target = isSmall ? smallTarget : bigTarget;
     if (stops.length === 0) return;
 
     const STOP_ZOOM = isSmall ? 16 : 15; // arrive close (street level)
@@ -286,8 +322,8 @@ function JourneyController() {
     }
 
     const from = stops[index];
-    const to = stops[index + 1];
-    if (!to) return;
+    const to = stops[target ?? index + 1];
+    if (!to || !from) return;
     const km = haversineKm(from, to);
     const type = vehicleForDistance(km);
     const flip = to.lng < from.lng;
@@ -330,7 +366,7 @@ function JourneyController() {
 
     return cancel;
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [anyPlaying, bigPlaying, bigPhase, bigIndex, bigStops, smallPlaying, smallPhase, smallIndex, smallStops, faces, map]);
+  }, [anyPlaying, bigPlaying, bigPhase, bigIndex, bigTarget, bigStops, smallPlaying, smallPhase, smallIndex, smallTarget, smallStops, faces, map]);
 
   return null;
 }

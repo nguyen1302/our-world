@@ -16,6 +16,8 @@ export default function TimelineBar() {
   const cacheTrips = useMapStore((s) => s.cacheTrips);
   const baseLayer = useMapStore((s) => s.baseLayer);
   const toggleBaseLayer = useMapStore((s) => s.toggleBaseLayer);
+  const placingPhotoIds = useMapStore((s) => s.placingPhotoIds);
+  const cancelPlacing = useMapStore((s) => s.cancelPlacing);
   const trackRef = useRef<HTMLDivElement>(null);
   const [zoom, setZoom] = useState(1);
 
@@ -23,6 +25,36 @@ export default function TimelineBar() {
   const jStops = useBigJourney((s) => s.stops);
   const jIndex = useBigJourney((s) => s.index);
   const startJourney = useBigJourney((s) => s.start);
+  const travelTo = useBigJourney((s) => s.travelTo);
+  const placing = placingPhotoIds.length > 0;
+
+  // Tapping a bead does one of three things depending on mode.
+  async function onBead(id: string) {
+    // 1) placing unplaced photos → add the whole selection to THIS trip
+    if (placingPhotoIds.length > 0) {
+      const ids = placingPhotoIds;
+      cancelPlacing();
+      await Promise.all(
+        ids.map((pid) =>
+          fetch(`/api/photos/${pid}/locate`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ tripId: id }),
+          }).catch(() => null),
+        ),
+      );
+      window.dispatchEvent(new Event("ow:refresh"));
+      return;
+    }
+    // 2) during a journey → drive the vehicle from here to the chosen stop
+    if (playing) {
+      const idx = jStops.findIndex((s) => s.id === id);
+      if (idx >= 0) travelTo(idx);
+      return;
+    }
+    // 3) normal → open the trip
+    requestEnterTrip(id);
+  }
 
   const activeId = playing ? jStops[jIndex]?.id ?? null : focusedTripId;
 
@@ -123,10 +155,10 @@ export default function TimelineBar() {
                 <div
                   key={b.id}
                   data-active={active ? "1" : "0"}
-                  className={`ow-tlbead ${active ? "ow-tlbead--active" : ""}`}
+                  className={`ow-tlbead ${active ? "ow-tlbead--active" : ""} ${placing ? "ow-tlbead--placing" : ""}`}
                   style={{ left: layout!.xs[i], zIndex: active ? 4 : 3 }}
-                  onClick={() => requestEnterTrip(b.id)}
-                  title={b.title}
+                  onClick={() => onBead(b.id)}
+                  title={placing ? "Thêm ảnh đã chọn vào mốc này" : b.title}
                 >
                   <div className="ow-tlbead__thumb">
                     <img src={b.cover ?? ""} alt="" loading="lazy" />

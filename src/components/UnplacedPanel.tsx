@@ -43,7 +43,7 @@ export default function UnplacedPanel({ version }: { version: number }) {
     return createPortal(
       <div className="ow-placing">
         <span className="ow-placing__dot" />
-        Bấm lên bản đồ để đặt vị trí cho {placingPhotoIds.length} ảnh
+        Đặt {placingPhotoIds.length} ảnh: bấm 1 điểm trên bản đồ, hoặc bấm 1 mốc (trên bản đồ / timeline) để thêm vào mốc đó
         <button onClick={cancelPlacing}>Huỷ</button>
       </div>,
       document.body,

@@ -57,6 +57,13 @@ export default function Home() {
     refresh();
   }, [refresh]);
 
+  // reload after attaching unplaced photos to a mốc from the map / timeline
+  useEffect(() => {
+    const h = () => refresh();
+    window.addEventListener("ow:refresh", h);
+    return () => window.removeEventListener("ow:refresh", h);
+  }, [refresh]);
+
   // when a trip marker/bead is clicked, fetch its places and drill in
   useEffect(() => {
     if (!pendingEnterTripId) return;
@@ -74,7 +81,7 @@ export default function Home() {
   const isAdmin = role === "admin";
 
   return (
-    <div className={`ow-app ${journeyActive ? "ow-app--journey" : ""} ${journeyActive && journeyDetailOpen ? "ow-app--jdetail" : ""}`}>
+    <div className={`ow-app ${journeyActive ? "ow-app--journey" : ""} ${smallPlaying ? "ow-app--smalljourney" : ""} ${journeyActive && journeyDetailOpen ? "ow-app--jdetail" : ""}`}>
       <WorldMap onPlaced={refresh} />
       <Uploader ref={uploaderRef} onUploaded={refresh} />
 

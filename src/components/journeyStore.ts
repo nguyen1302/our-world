@@ -45,6 +45,7 @@ export interface JourneyState {
   mode: JourneyMode;
   stops: Stop[];
   index: number;
+  target: number | null; // when moving, the stop we're travelling TO (may be far)
   phase: "paused" | "moving";
   progress: number;
   activePlaceId: string | null;
@@ -52,7 +53,7 @@ export interface JourneyState {
   start: (stops: Stop[]) => void;
   exit: () => void;
   next: () => void;
-  jumpTo: (i: number) => void;
+  travelTo: (i: number) => void;
   setProgress: (p: number) => void;
   arrive: () => void;
   setActivePlace: (id: string | null) => void;
@@ -65,26 +66,28 @@ function makeJourney(mode: JourneyMode) {
     mode,
     stops: [],
     index: 0,
+    target: null,
     phase: "paused",
     progress: 0,
     activePlaceId: null,
 
-    start: (stops) => set({ playing: true, stops, index: 0, phase: "paused", progress: 0, activePlaceId: null }),
-    exit: () => set({ playing: false, phase: "paused", progress: 0, index: 0, activePlaceId: null }),
+    start: (stops) => set({ playing: true, stops, index: 0, target: null, phase: "paused", progress: 0, activePlaceId: null }),
+    exit: () => set({ playing: false, phase: "paused", progress: 0, index: 0, target: null, activePlaceId: null }),
     next: () => {
       const { index, stops } = get();
-      if (index >= stops.length - 1) set({ playing: false, phase: "paused", progress: 0, index: 0 });
-      else set({ phase: "moving", progress: 0 });
+      if (index >= stops.length - 1) set({ playing: false, phase: "paused", progress: 0, index: 0, target: null });
+      else set({ phase: "moving", progress: 0, target: index + 1 });
     },
-    // jump straight to any stop (resume at stage X / skip around); pause there so
-    // the controller flies to it, then the user presses "Tiếp" to keep going.
-    jumpTo: (i) =>
+    // travel from the current stop DIRECTLY to any chosen stop (tap a timeline bead);
+    // the vehicle animates across, no teleport. Same stop → just pause there.
+    travelTo: (i) =>
       set((s) => {
         const idx = Math.max(0, Math.min(i, s.stops.length - 1));
-        return { playing: true, index: idx, phase: "paused", progress: 0 };
+        if (idx === s.index) return { playing: true, phase: "paused", progress: 0, target: null };
+        return { playing: true, phase: "moving", progress: 0, target: idx };
       }),
     setProgress: (p) => set({ progress: p }),
-    arrive: () => set((s) => ({ index: s.index + 1, phase: "paused", progress: 0 })),
+    arrive: () => set((s) => ({ index: s.target ?? s.index + 1, phase: "paused", progress: 0, target: null })),
     setActivePlace: (id) => set({ activePlaceId: id }),
   }));
 }
