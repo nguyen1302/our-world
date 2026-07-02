@@ -13,6 +13,7 @@ import MemoryCard from "@/components/MemoryCard";
 import JourneyControls from "@/components/JourneyControls";
 import FaceModal from "@/components/FaceModal";
 import MusicModal from "@/components/MusicModal";
+import ShareModal from "@/components/ShareModal";
 import UnplacedPanel from "@/components/UnplacedPanel";
 import Uploader, { type UploaderHandle } from "@/components/Uploader";
 
@@ -36,6 +37,7 @@ export default function Home() {
   const [role, setRole] = useState<"admin" | "viewer" | null>(null);
   const [showFaces, setShowFaces] = useState(false);
   const [showMusic, setShowMusic] = useState(false);
+  const [showShare, setShowShare] = useState(false);
   const [dataVersion, setDataVersion] = useState(0);
   const uploaderRef = useRef<UploaderHandle>(null);
 
@@ -109,6 +111,7 @@ export default function Home() {
             onFaces={() => setShowFaces(true)}
             onMusic={() => setShowMusic(true)}
             onImport={() => uploaderRef.current?.open()}
+            onShare={() => setShowShare(true)}
           />
         </div>
       </header>
@@ -119,6 +122,7 @@ export default function Home() {
 
       {showFaces && <FaceModal onClose={() => setShowFaces(false)} />}
       {showMusic && <MusicModal onClose={() => setShowMusic(false)} />}
+      {showShare && <ShareModal onClose={() => setShowShare(false)} />}
     </div>
   );
 }

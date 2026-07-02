@@ -155,6 +155,25 @@ export const tracks = pgTable(
   (t) => ({ spaceIdx: index("tracks_space_idx").on(t.spaceId) }),
 );
 
+// A public, revocable share of the whole map/journey (read-only, no login).
+export const shares = pgTable(
+  "shares",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    spaceId: uuid("space_id").notNull(),
+    token: text("token").notNull().unique(), // unguessable URL slug
+    title: text("title"),
+    includeMusic: boolean("include_music").notNull().default(true),
+    facesJson: jsonb("faces_json"), // { a: dataUrl|null, b: dataUrl|null } snapshot for the vehicle
+    revoked: boolean("revoked").notNull().default(false),
+    expiresAt: timestamp("expires_at", { withTimezone: true }), // reserved; null = no expiry
+    viewCount: integer("view_count").notNull().default(0),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => ({ tokenIdx: index("shares_token_idx").on(t.token) }),
+);
+
 export type Memory = typeof memories.$inferSelect;
 export type Photo = typeof photos.$inferSelect;
 export type Job = typeof jobs.$inferSelect;
+export type Share = typeof shares.$inferSelect;

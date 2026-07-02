@@ -22,6 +22,13 @@
       "when": 1782843542310,
       "tag": "0002_colorful_salo",
       "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1782964792538,
+      "tag": "0003_peaceful_silver_centurion",
+      "breakpoints": true
     }
   ]
 }

@@ -16,6 +16,12 @@ export async function middleware(req: NextRequest) {
     return NextResponse.next();
   }
 
+  // Public share link: the /s/[token] viewer page + its read-only API must be
+  // reachable logged-out. (The API itself validates the token + read-only scope.)
+  if (pathname.startsWith("/s/") || pathname.startsWith("/api/public/")) {
+    return NextResponse.next();
+  }
+
   if (pathname.startsWith("/api/")) {
     if (!session) {
       return NextResponse.json({ error: "unauthorized" }, { status: 401 });

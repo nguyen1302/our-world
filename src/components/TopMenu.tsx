@@ -8,6 +8,7 @@ export default function TopMenu({
   onFaces,
   onMusic,
   onImport,
+  onShare,
 }: {
   isAdmin: boolean;
   onUploaded: () => void;
@@ -15,6 +16,7 @@ export default function TopMenu({
   onFaces: () => void;
   onMusic: () => void;
   onImport: () => void;
+  onShare: () => void;
 }) {
   const [open, setOpen] = useState(false);
 
@@ -37,6 +39,11 @@ export default function TopMenu({
           {isAdmin && (
             <button className="ow-menu__item" onClick={() => { setOpen(false); onMusic(); }}>
               🎵 Nhạc nền
+            </button>
+          )}
+          {isAdmin && (
+            <button className="ow-menu__item" onClick={() => { setOpen(false); onShare(); }}>
+              🔗 Chia sẻ hành trình
             </button>
           )}
           <button className="ow-menu__item ow-menu__item--logout" onClick={() => { setOpen(false); onLogout(); }}>

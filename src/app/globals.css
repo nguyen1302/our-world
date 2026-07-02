@@ -221,6 +221,13 @@ body { font-family: var(--sans); -webkit-font-smoothing: antialiased; text-rende
 .ow-track__upload:disabled { opacity: .7; }
 .ow-empty { color: var(--muted-2); font-size: 13px; font-style: italic; }
 
+/* ---------- Share modal ---------- */
+.ow-share-row { display: flex; gap: 6px; align-items: center; margin-bottom: 14px; }
+.ow-share-url { flex: 1; min-width: 0; background: rgba(240,235,220,.07); border: 1px solid var(--line); color: var(--cream); border-radius: 9px; padding: 8px 10px; font-size: 12.5px; font-family: var(--sans); }
+.ow-share-toggle { display: flex; align-items: center; gap: 8px; font-size: 13.5px; color: var(--cream); cursor: pointer; margin-bottom: 14px; }
+.ow-share-toggle input { width: 16px; height: 16px; accent-color: var(--gold); }
+.ow-share-actions { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+
 /* ---------- Upload progress toast (page-level, survives menu open/close) ---------- */
 .ow-uptoast { position: absolute; top: calc(var(--topbar-h) + 16px); left: 50%; transform: translateX(-50%); z-index: 1400; background: var(--surface-solid); backdrop-filter: blur(14px); border: 1px solid rgba(233,184,114,.5); border-radius: 999px; padding: 9px 18px; box-shadow: var(--shadow-lg); color: var(--cream); font-size: 13px; font-weight: 600; }
 

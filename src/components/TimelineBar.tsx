@@ -2,6 +2,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useMapStore } from "./mapStore";
 import { useBigJourney } from "./journeyStore";
+import { useApiBase } from "./apiBase";
 
 const PAD = 50;
 
@@ -18,6 +19,7 @@ export default function TimelineBar() {
   const toggleBaseLayer = useMapStore((s) => s.toggleBaseLayer);
   const placingPhotoIds = useMapStore((s) => s.placingPhotoIds);
   const cancelPlacing = useMapStore((s) => s.cancelPlacing);
+  const apiBase = useApiBase();
   const trackRef = useRef<HTMLDivElement>(null);
   const [zoom, setZoom] = useState(1);
 
@@ -96,7 +98,7 @@ export default function TimelineBar() {
   }, [activeId, zoom]);
 
   async function playBigTrips() {
-    const details = await Promise.all(memories.map((m) => fetch(`/api/memories/${m.id}`).then((r) => r.json())));
+    const details = await Promise.all(memories.map((m) => fetch(`${apiBase}/memories/${m.id}`).then((r) => r.json())));
     cacheTrips(details);
     const stops = [...memories]
       .sort((a, b) => a.startAt.localeCompare(b.startAt))
