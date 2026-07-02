@@ -80,8 +80,6 @@ interface MapState {
   focusPoint: FocusPoint | null;
   focusBounds: FocusBounds | null;
 
-  baseLayer: "satellite" | "light";
-  toggleBaseLayer: () => void;
   // mobile: show the stop's detail card while a journey is running
   journeyDetailOpen: boolean;
   toggleJourneyDetail: () => void;
@@ -125,8 +123,6 @@ export const useMapStore = create<MapState>((set, get) => ({
   focusPoint: null,
   focusBounds: null,
   placingPhotoIds: [],
-  baseLayer: "satellite",
-  toggleBaseLayer: () => set((s) => ({ baseLayer: s.baseLayer === "satellite" ? "light" : "satellite" })),
   journeyDetailOpen: false,
   toggleJourneyDetail: () => set((s) => ({ journeyDetailOpen: !s.journeyDetailOpen })),
 

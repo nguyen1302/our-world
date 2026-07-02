@@ -9,6 +9,8 @@ import Stats from "@/components/Stats";
 import TimelineBar from "@/components/TimelineBar";
 import MemoryCard from "@/components/MemoryCard";
 import JourneyControls from "@/components/JourneyControls";
+import ThemePicker from "@/components/ThemePicker";
+import ThemeController from "@/components/ThemeController";
 
 const WorldMap = dynamic(() => import("@/components/WorldMap"), { ssr: false });
 
@@ -68,6 +70,7 @@ export default function PublicHome({ token }: { token: string }) {
   return (
     <ApiBaseProvider base={base}>
       <div className={`ow-app ${journeyActive ? "ow-app--journey" : ""} ${smallPlaying ? "ow-app--smalljourney" : ""} ${journeyActive && journeyDetailOpen ? "ow-app--jdetail" : ""}`}>
+        <ThemeController />
         <WorldMap />
 
         <header className="ow-topbar">
@@ -85,6 +88,7 @@ export default function PublicHome({ token }: { token: string }) {
               <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><circle cx="6" cy="19" r="2.4" /><circle cx="18" cy="5" r="2.4" /><path d="M8 17.5C12 15 9 9 13.5 6.5" /></svg>
               <span>Tuyến đường</span>
             </button>
+            <ThemePicker />
           </div>
         </header>
 

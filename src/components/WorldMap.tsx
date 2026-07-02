@@ -8,17 +8,16 @@ import "leaflet.markercluster";
 import { useMapStore } from "./mapStore";
 import { useBigJourney, useSmallJourney, useFaces, vehicleForDistance, haversineKm } from "./journeyStore";
 import { vehicleSvg, type VehicleType } from "./vehicles";
+import { THEMES, useTheme } from "./themeStore";
 
 const VN_CENTER: [number, number] = [16.2, 107.2];
 const VN_ZOOM = 6;
-const GOLD = "#e9b872";
-const ROSE = "#d98695";
 
-function markerHtml(cover: string | null, active: boolean, size = 44): string {
-  const glow = active ? `0 6px 20px rgba(0,0,0,.6),0 0 24px ${GOLD}` : `0 4px 14px rgba(0,0,0,.6),0 0 16px ${GOLD}66`;
+function markerHtml(cover: string | null, active: boolean, size: number, gold: string, rose: string): string {
+  const glow = active ? `0 6px 20px rgba(0,0,0,.6),0 0 24px ${gold}` : `0 4px 14px rgba(0,0,0,.6),0 0 16px ${gold}66`;
   return (
     `<div class="wwh-mk"><div class="wwh-mk-inner" style="width:${size}px;height:${size}px;border-radius:50%;padding:2px;` +
-    `background:linear-gradient(135deg,${GOLD},${ROSE});box-shadow:${glow};transform:scale(${active ? 1.32 : 1})">` +
+    `background:linear-gradient(135deg,${gold},${rose});box-shadow:${glow};transform:scale(${active ? 1.32 : 1})">` +
     `<img src="${cover ?? ""}" style="width:100%;height:100%;object-fit:cover;border-radius:50%;display:block;border:2px solid #11160F;"></div></div>`
   );
 }
@@ -39,6 +38,9 @@ function MarkersLayer() {
   const selectedPlaceId = useMapStore((s) => s.selectedPlaceId);
   const requestEnterTrip = useMapStore((s) => s.requestEnterTrip);
   const selectPlace = useMapStore((s) => s.selectPlace);
+  const theme = useTheme((s) => s.theme);
+  const GOLD = (THEMES[theme] ?? THEMES.nostalgic).accent;
+  const ROSE = (THEMES[theme] ?? THEMES.nostalgic).accent2;
 
   const level2 = !!focusedTripId && !!tripDetail;
 
@@ -62,7 +64,7 @@ function MarkersLayer() {
       // so it doesn't stack a concentric ring over the place markers
       if (level2 && m.id === focusedTripId) continue;
       const marker = L.marker([m.lat, m.lng], {
-        icon: L.divIcon({ className: "", iconSize: [44, 44], iconAnchor: [22, 22], html: markerHtml(m.coverThumbUrl, false, 44) }),
+        icon: L.divIcon({ className: "", iconSize: [44, 44], iconAnchor: [22, 22], html: markerHtml(m.coverThumbUrl, false, 44, GOLD, ROSE) }),
       });
       marker.on("click", async (e: any) => {
         L.DomEvent.stopPropagation(e);
@@ -98,7 +100,7 @@ function MarkersLayer() {
       placeGroup = L.layerGroup();
       for (const p of tripDetail!.places) {
         const marker = L.marker([p.lat, p.lng], {
-          icon: L.divIcon({ className: "ow-placemk", iconSize: [36, 36], iconAnchor: [18, 18], html: markerHtml((p.coverPhotoId ? p.photos.find((x) => x.id === p.coverPhotoId) : null)?.thumbUrl ?? p.photos[0]?.thumbUrl ?? null, p.id === selectedPlaceId, 36) }),
+          icon: L.divIcon({ className: "ow-placemk", iconSize: [36, 36], iconAnchor: [18, 18], html: markerHtml((p.coverPhotoId ? p.photos.find((x) => x.id === p.coverPhotoId) : null)?.thumbUrl ?? p.photos[0]?.thumbUrl ?? null, p.id === selectedPlaceId, 36, GOLD, ROSE) }),
           zIndexOffset: 500,
         });
         marker.on("click", async (e: any) => {
@@ -131,7 +133,7 @@ function MarkersLayer() {
       map.removeLayer(tripGroup);
       if (placeGroup) map.removeLayer(placeGroup);
     };
-  }, [map, memories, tripDetail, focusedTripId, selectedPlaceId, level2, requestEnterTrip, selectPlace]);
+  }, [map, memories, tripDetail, focusedTripId, selectedPlaceId, level2, requestEnterTrip, selectPlace, GOLD, ROSE]);
 
   return null;
 }
@@ -376,7 +378,11 @@ export default function WorldMap({ onPlaced }: { onPlaced?: () => void }) {
   const showRoute = useMapStore((s) => s.showRoute);
   const focusedTripId = useMapStore((s) => s.focusedTripId);
   const tripDetail = useMapStore((s) => s.tripDetail);
-  const base = useMapStore((s) => s.baseLayer);
+  const theme = useTheme((s) => s.theme);
+  const T = THEMES[theme] ?? THEMES.nostalgic;
+  const base = T.base; // "satellite" | "dark"
+  const GOLD = T.accent;
+  const ROSE = T.accent2;
 
   // big route (gold) = journey between trips
   const routePoints = useMemo(
@@ -420,9 +426,9 @@ export default function WorldMap({ onPlaced }: { onPlaced?: () => void }) {
       ) : (
         <TileLayer
           attribution='&copy; OpenStreetMap &copy; CARTO'
-          url="https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png"
+          url="https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png"
           subdomains="abcd"
-          maxZoom={20}
+          maxZoom={19}
           keepBuffer={8}
           updateWhenIdle
           updateWhenZooming={false}

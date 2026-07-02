@@ -15,8 +15,6 @@ export default function TimelineBar() {
   const focusedTripId = useMapStore((s) => s.focusedTripId);
   const requestEnterTrip = useMapStore((s) => s.requestEnterTrip);
   const cacheTrips = useMapStore((s) => s.cacheTrips);
-  const baseLayer = useMapStore((s) => s.baseLayer);
-  const toggleBaseLayer = useMapStore((s) => s.toggleBaseLayer);
   const placingPhotoIds = useMapStore((s) => s.placingPhotoIds);
   const cancelPlacing = useMapStore((s) => s.cancelPlacing);
   const apiBase = useApiBase();
@@ -122,9 +120,6 @@ export default function TimelineBar() {
             Chuyến đi
           </button>
         )}
-        <button className="ow-tl-base" onClick={toggleBaseLayer} title="Đổi kiểu bản đồ">
-          {baseLayer === "satellite" ? "🗺️" : "🛰️"}
-        </button>
         <div className="ow-tl-zoom">
           <button onClick={() => setZoom((z) => Math.max(0.45, z / 1.55))} title="Thu nhỏ">
             <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round"><path d="M5 12h14" /></svg>

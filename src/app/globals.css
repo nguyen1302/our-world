@@ -1,13 +1,27 @@
 :root {
-  --ink: #0e1410;          /* map/page background */
-  --surface: rgba(16, 22, 18, 0.62);
-  --surface-solid: rgba(20, 26, 21, 0.9);
+  /* Theme palette (defaults = "Hoài niệm"). ThemeController overrides these
+     --ow-* props on <html> per the active theme; everything below is derived
+     from them, so switching theme recolors the whole app. */
+  --ow-accent: #e9b872;
+  --ow-accent2: #d98695;
+  --ow-accent-rgb: 233, 184, 114;
+  --ow-text: #f4ebe2;
+  --ow-muted: #b7c2b8;
+  --ow-muted2: #8d978c;
+  --ow-ink: #0e1410;
+  --ow-glass-rgb: 16, 22, 18;
+  --ow-solid-rgb: 20, 26, 21;
+  --ow-tile-filter: saturate(1.08) contrast(1.05) brightness(0.96);
+
+  --ink: var(--ow-ink);    /* map/page background */
+  --surface: rgba(var(--ow-glass-rgb), 0.62);
+  --surface-solid: rgba(var(--ow-solid-rgb), 0.9);
   --line: rgba(240, 235, 220, 0.14);
-  --cream: #f4ebe2;        /* primary text */
-  --muted: #b7c2b8;        /* secondary text */
-  --muted-2: #8d978c;
-  --gold: #e9b872;         /* accent */
-  --rose: #d98695;         /* accent 2 */
+  --cream: var(--ow-text);  /* primary text */
+  --muted: var(--ow-muted); /* secondary text */
+  --muted-2: var(--ow-muted2);
+  --gold: var(--ow-accent);  /* accent */
+  --rose: var(--ow-accent2); /* accent 2 */
   --shadow: 0 12px 30px rgba(0, 0, 0, 0.4);
   --shadow-lg: 0 30px 70px rgba(0, 0, 0, 0.55);
   --serif: var(--font-serif), "Spectral", Georgia, serif;
@@ -28,14 +42,30 @@ body { font-family: var(--sans); -webkit-font-smoothing: antialiased; text-rende
 .ow-app { position: relative; height: 100dvh; width: 100vw; overflow: hidden; background: var(--ink); }
 .ow-map { position: absolute; inset: 0; height: 100%; width: 100%; z-index: 0; background: var(--ink); }
 .leaflet-tile { transition: opacity .3s ease; }
-.ow-tl-base { width: 34px; height: 30px; display: flex; align-items: center; justify-content: center; border-radius: 9px; border: 1px solid var(--line); background: rgba(240,235,220,.04); cursor: pointer; font-size: 15px; }
 .ow-jdetail-btn { display: none; } /* desktop: card always visible, no toggle needed */
+
+/* ---------- Theme picker (top bar) ---------- */
+.ow-theme { position: relative; }
+.ow-theme__btn { gap: 9px; }
+.ow-theme__btn--on { border-color: var(--gold); }
+.ow-theme__swatch { width: 16px; height: 16px; border-radius: 5px; flex: none; border: 1px solid rgba(255,255,255,.3); }
+.ow-theme__backdrop { position: fixed; inset: 0; z-index: 1350; }
+.ow-theme__pop { position: absolute; top: calc(100% + 10px); right: 0; width: 250px; z-index: 1400; background: var(--surface-solid); backdrop-filter: blur(18px); border: 1px solid rgba(240,235,220,.16); border-radius: 16px; padding: 12px 10px 10px; box-shadow: 0 26px 60px rgba(0,0,0,.6); animation: wwhPop .18s cubic-bezier(.2,.7,.2,1); }
+.ow-theme__label { font-size: 10px; letter-spacing: .16em; text-transform: uppercase; color: var(--muted-2); padding: 2px 6px 9px; }
+.ow-theme__row { display: flex; align-items: center; gap: 11px; padding: 9px 8px; border-radius: 11px; cursor: pointer; transition: background .16s ease; }
+.ow-theme__row:hover { background: rgba(240,235,220,.08); }
+.ow-theme__row--on { background: rgba(var(--ow-accent-rgb),.12); }
+.ow-theme__meta { flex: 1; min-width: 0; }
+.ow-theme__name { font-family: var(--serif); font-size: 15px; color: var(--cream); line-height: 1.1; }
+.ow-theme__sub { font-size: 11px; color: var(--muted); margin-top: 3px; }
+
+@keyframes wwhPop { from { opacity: 0; transform: translateY(-8px) scale(.96); } to { opacity: 1; transform: translateY(0) scale(1); } }
 /* vignette */
 .ow-app::after { content: ""; position: absolute; inset: 0; z-index: 1; pointer-events: none; box-shadow: inset 0 0 200px 30px rgba(6, 10, 8, 0.6); }
 
 /* ---- Leaflet theming ---- */
 .leaflet-container { background: var(--ink); font-family: var(--sans); outline: none; }
-.leaflet-tile-pane { filter: saturate(1.08) contrast(1.05) brightness(0.96); }
+.leaflet-tile-pane { filter: var(--ow-tile-filter, saturate(1.08) contrast(1.05) brightness(0.96)); }
 .ow-veh { background: transparent !important; border: none !important; filter: drop-shadow(0 0 2px rgba(255,250,240,.7)) drop-shadow(0 5px 8px rgba(0,0,0,.5)); }
 .leaflet-control-attribution { background: rgba(14, 20, 16, 0.6) !important; color: #9fb0a4 !important; backdrop-filter: blur(4px); font-size: 10px; padding: 2px 6px; }
 .leaflet-control-attribution a { color: #cfe0d4 !important; }
@@ -272,41 +302,37 @@ body { font-family: var(--sans); -webkit-font-smoothing: antialiased; text-rende
 .ow-login .ow-err { color: var(--rose); font-size: 13px; text-align: center; }
 
 /* ---------- Responsive (MOBILE ONLY — desktop unchanged) ---------- */
-@media (max-width: 767px) {
+/* ============ TABLET + PHONE (<1000px) — map-first, sheet-based layout ============ */
+@media (max-width: 999px) {
   :root { --tlbar-h: 116px; }
 
-  /* Top: slim, one row — brand + minimal chips + menu. Map stays the hero. */
+  /* Top: slim one-row bar; chips wrap instead of covering the logo. */
   .ow-topbar { top: 8px; left: 8px; right: 8px; padding: 8px 10px; gap: 6px; align-items: flex-start; }
-  .ow-brand { padding: 6px 10px; flex-shrink: 0; }   /* never let the logo get covered */
-  .ow-brand__name { font-size: 14px; white-space: nowrap; }
-  .ow-brand__sub { display: none; }
-  /* overflow chips wrap to a new row instead of sliding over the logo */
+  .ow-brand { padding: 6px 10px; flex-shrink: 0; }
+  .ow-brand__name { font-size: 15px; white-space: nowrap; }
   .ow-topright { max-width: none; gap: 6px; flex-wrap: wrap; }
-  .ow-topright > * { height: 38px; }
-  .ow-stats { padding: 6px 2px; }
-  .ow-stat { padding: 0 7px; }
-  .ow-stat__l { display: none; }
-  .ow-otd { display: none; }
-  .ow-pillbtn span { display: none; }          /* route btn = icon only */
-  .ow-pillbtn, .ow-menu__btn { height: 40px; padding: 0 11px; }
-  .ow-unplaced-btn { height: 40px; padding: 0 10px; }
+  .ow-topright > * { height: 40px; }
+  .ow-pillbtn, .ow-menu__btn, .ow-theme__btn, .ow-unplaced-btn { height: 40px; padding: 0 12px; }
 
-  /* Bottom sheet: timeline peek by default; card slides up (map still visible above) */
-  .ow-tlbar { left: 8px; right: 8px; bottom: 8px; padding: 10px 12px 8px; }
+  /* Card = centered bottom sheet (tablet keeps a comfortable max width). */
+  .ow-tlbar { left: 10px; right: 10px; bottom: 10px; padding: 12px 14px 10px; }
   .ow-card {
-    top: auto; left: 0; right: 0; bottom: 0; width: 100%; max-width: 100%;
-    max-height: 62vh; border-radius: 20px 20px 0 0; border-left: none; border-right: none;
+    top: auto; left: 0; right: 0; bottom: 0; width: 100%; max-width: 640px; margin: 0 auto;
+    max-height: 70vh; border-radius: 22px 22px 0 0; border-left: none; border-right: none;
   }
-  /* grabber handle */
   .ow-card::before {
     content: ""; position: sticky; top: 0; display: block; width: 42px; height: 4px;
     margin: 8px auto 0; border-radius: 3px; background: rgba(240,235,220,.35);
   }
 
-  /* Journey → slim bar; the sheet/card/top clutter is hidden so the vehicle shows */
+  /* Theme popup stays a dropdown on tablet. */
+  .ow-theme__pop { width: 250px; }
+
+  /* Journey → slim bar; map stays the hero. */
   .ow-journey {
     top: auto; bottom: 10px; left: 8px; right: 8px;
     transform: none; gap: 8px; padding: 8px 10px; border-radius: 14px; flex-wrap: nowrap;
+    max-width: 640px; margin: 0 auto;
   }
   .ow-journey--small { bottom: 66px !important; top: auto !important; transform: none; scale: 1; left: 8px; right: 8px; }
   .ow-journey__badge, .ow-journey__mute { display: none; }
@@ -317,35 +343,51 @@ body { font-family: var(--sans); -webkit-font-smoothing: antialiased; text-rende
   .ow-journey__next { padding: 9px 13px; flex-shrink: 0; }
   .ow-journey__moving { flex-shrink: 0; padding: 8px 10px; }
 
-  /* During journey: hide the top bar + card, but KEEP a compact timeline so its beads
-     stay tappable — tapping a bead drives the vehicle to that chặng. */
+  /* During journey: hide the top bar + card, keep a compact tappable timeline. */
   .ow-app--journey .ow-topbar { display: none; }
   .ow-app--journey .ow-card { display: none; }
-  .ow-app--journey .ow-tl-head { display: none; }        /* hide title/play/zoom row */
-  .ow-app--journey .ow-tlbar {
-    left: 8px; right: 8px; bottom: 74px;                 /* sit just above the journey bar */
-    padding: 6px 8px; background: rgba(16,22,18,.62);
-  }
+  .ow-app--journey .ow-tl-head { display: none; }
+  .ow-app--journey .ow-tlbar { left: 8px; right: 8px; bottom: 74px; padding: 6px 8px; background: rgba(var(--ow-glass-rgb),.62); max-width: 640px; margin: 0 auto; }
   .ow-app--journey .ow-tlbar__track { height: 66px; }
-  /* inside a small (place) ride, the big-stop timeline doesn't apply → hide it */
   .ow-app--smalljourney .ow-tlbar { display: none; }
 
-  /* '▸ Chi tiết' toggle: ONLY during a journey, docked TOP-center (top bar is hidden,
-     so there's room) — never over the map or the bottom cluster. */
+  /* '▸ Chi tiết' toggle — top-center during journey. */
   .ow-app--journey .ow-jdetail-btn {
     display: block; position: absolute; z-index: 1250; left: 50%; transform: translateX(-50%);
     top: 12px; bottom: auto; background: var(--surface-solid); backdrop-filter: blur(12px);
     border: 1px solid var(--line); color: var(--cream); border-radius: 999px;
     padding: 7px 16px; font-size: 12.5px; cursor: pointer; box-shadow: 0 6px 18px rgba(0,0,0,.35);
   }
-  /* detail sheet drops from the top, UNDER the toggle; scrolls if long (no cut-off) */
+  /* detail sheet drops from the top, centered, scrolls if long. */
   .ow-app--journey.ow-app--jdetail .ow-card {
-    display: block; top: 52px; bottom: auto; left: 8px; right: 8px;
+    display: block; top: 52px; bottom: auto; left: 8px; right: 8px; margin: 0 auto; max-width: 640px;
     width: auto; max-height: 46vh; overflow-y: auto; border-radius: 18px;
   }
 
   .ow-placing { top: calc(var(--topbar-h) + 14px); left: 8px; right: 8px; transform: none; justify-content: center; font-size: 12px; }
-  .ow-modal__box, .ow-modal__box--wide { width: 92vw; }
-  .ow-unplaced-grid { grid-template-columns: repeat(3, 1fr); }
+  .ow-modal__box { width: 92vw; }
+  .ow-modal__box--wide { width: 92vw; }
   .ow-lightbox__arrow { width: 42px; height: 42px; }
+}
+
+/* ============ PHONE ONLY (<600px) — tightest layout, full-width sheets ============ */
+@media (max-width: 599px) {
+  .ow-brand__name { font-size: 14px; }
+  .ow-brand__sub { display: none; }
+  .ow-stats { padding: 6px 2px; }
+  .ow-stat { padding: 0 7px; }
+  .ow-stat__l { display: none; }
+  .ow-otd { display: none; }
+  .ow-topright > * { height: 38px; }
+  /* chips become icon-only to fit a narrow phone */
+  .ow-pillbtn span, .ow-theme__btn span { display: none; }
+  .ow-pillbtn, .ow-menu__btn, .ow-theme__btn, .ow-unplaced-btn { padding: 0 11px; }
+
+  /* full-width bottom sheet, taller */
+  .ow-card { max-width: none; max-height: 82vh; border-radius: 22px 22px 0 0; }
+
+  /* theme picker opens as a bottom sheet (comp behavior) */
+  .ow-theme__pop { position: fixed; left: 10px; right: 10px; bottom: 10px; top: auto; width: auto; border-radius: 18px; padding: 14px 12px 12px; animation: wwhUp .24s cubic-bezier(.2,.7,.2,1); }
+
+  .ow-unplaced-grid { grid-template-columns: repeat(3, 1fr); }
 }

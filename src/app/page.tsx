@@ -14,6 +14,8 @@ import JourneyControls from "@/components/JourneyControls";
 import FaceModal from "@/components/FaceModal";
 import MusicModal from "@/components/MusicModal";
 import ShareModal from "@/components/ShareModal";
+import ThemePicker from "@/components/ThemePicker";
+import ThemeController from "@/components/ThemeController";
 import UnplacedPanel from "@/components/UnplacedPanel";
 import Uploader, { type UploaderHandle } from "@/components/Uploader";
 
@@ -84,6 +86,7 @@ export default function Home() {
 
   return (
     <div className={`ow-app ${journeyActive ? "ow-app--journey" : ""} ${smallPlaying ? "ow-app--smalljourney" : ""} ${journeyActive && journeyDetailOpen ? "ow-app--jdetail" : ""}`}>
+      <ThemeController />
       <WorldMap onPlaced={refresh} />
       <Uploader ref={uploaderRef} onUploaded={refresh} />
 
@@ -103,6 +106,7 @@ export default function Home() {
             <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><circle cx="6" cy="19" r="2.4" /><circle cx="18" cy="5" r="2.4" /><path d="M8 17.5C12 15 9 9 13.5 6.5" /></svg>
             <span>Tuyến đường</span>
           </button>
+          <ThemePicker />
           {isAdmin && <UnplacedPanel version={dataVersion} />}
           <TopMenu
             isAdmin={isAdmin}
